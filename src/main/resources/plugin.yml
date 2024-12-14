@@ -1,0 +1,5 @@
+name: SimpleCrossChat
+version: '0.1'
+main: de.liebki.simplecrosschat.SimpleCrossChat
+api-version: '1.21'
+load: STARTUP
