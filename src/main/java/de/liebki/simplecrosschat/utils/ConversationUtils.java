@@ -14,7 +14,8 @@ import java.util.Base64;
 
 public class ConversationUtils {
 
-    private ConversationUtils() {}
+    private ConversationUtils() {
+    }
 
     public static String encrypt(String input, String salt) {
         try {

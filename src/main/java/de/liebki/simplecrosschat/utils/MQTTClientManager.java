@@ -15,7 +15,7 @@ import java.util.Arrays;
 
 public class MQTTClientManager {
 
-    private static String Prefix = "[SimpleCrossChat] ";
+    private static final String Prefix = "[SimpleCrossChat] ";
     private int errorSendCounter = 0;
     private final ConfigManager configManager;
     private MqttAsyncClient client;
@@ -80,25 +80,28 @@ public class MQTTClientManager {
     }
 
     public void sendMessage(String messageContent, String username, String servername) {
-        try {
 
+        if(!client.isConnected()) {
+            connect();
+        }
+
+        try {
             String encryptedUserMessage = ConversationUtils.encrypt(messageContent, configManager.get("communication.channel.key"));
             String encryptedUsername = ConversationUtils.encrypt(username, configManager.get("communication.channel.key"));
 
             String encryptedServername = ConversationUtils.encrypt(servername, configManager.get("communication.channel.key"));
 
-            if(encryptedUserMessage != null && encryptedUserMessage.length() > 0 && encryptedUsername.length() > 0 && encryptedServername.length() > 0 && encryptedServername.length() > 0) {
+            if (isContentReadyToSend(encryptedUserMessage, encryptedUsername, encryptedServername)) {
                 String jsonMessagePayload = JsonPayloadHandler.createJsonPayload(this.userUuid, encryptedUserMessage, encryptedUsername, encryptedServername);
-
                 MqttMessage message = new MqttMessage(jsonMessagePayload.getBytes());
+
                 message.setQos(1);
-
                 String convTopic = configManager.get("communication.channel.id");
-                IMqttToken token = client.publish(convTopic, message);
 
+                IMqttToken token = client.publish(convTopic, message);
                 token.waitForCompletion();
 
-                if(configManager.get("debug.showmessages")) {
+                if (configManager.get("debug.showmessages")) {
                     pluginInstance.getLogger().info(Prefix + "The player (user on your server) " + username + " sent a message");
                 }
             }
@@ -114,12 +117,16 @@ public class MQTTClientManager {
         }
     }
 
+    private static boolean isContentReadyToSend(String encryptedUserMessage, String encryptedUsername, String encryptedServername) {
+        return encryptedUserMessage != null && !encryptedUserMessage.isEmpty() && encryptedUsername != null && !encryptedUsername.isEmpty() && encryptedServername != null && !encryptedServername.isEmpty();
+    }
+
     private void subscribeToTopic(String topic) {
         if (topic != null && !topic.isEmpty()) {
             try {
                 MqttSubscription subscription = new MqttSubscription(topic, 1);
                 IMqttToken token = client.subscribe(new MqttSubscription[]{subscription}, null, null, (receivedTopic, message) -> {
-                    processMessage(receivedTopic, message);
+                    processReceivedMessage(message);
                 }, properties);
 
                 token.waitForCompletion(5000);
@@ -134,19 +141,19 @@ public class MQTTClientManager {
         }
     }
 
-    private void processMessage(String topic, MqttMessage message) {
+    private void processReceivedMessage(MqttMessage message) {
         JsonPayload receivedMessage = JsonPayloadHandler.readJsonPayload(new String(message.getPayload()));
 
         if (receivedMessage != null) {
             if (receivedMessage.getSenderUuid().equals(this.userUuid)) {
 
-                if(configManager.get("debug.showmessages")) {
+                if (configManager.get("debug.showmessages")) {
                     pluginInstance.getLogger().warning(Prefix + "The sending server and receiving is the same, no action required.");
                 }
                 return;
             }
 
-            if(configManager.get("debug.showmessages")) {
+            if (configManager.get("debug.showmessages")) {
                 pluginInstance.getLogger().info(Prefix + "A Message was received, trying to decrypt it's content");
             }
             String convKey = configManager.get("communication.channel.key");
@@ -169,7 +176,7 @@ public class MQTTClientManager {
     }
 
     private void broadcastDecryptedMessage(String message, String playername, String servername) {
-        if(configManager.get("debug.showmessages")) {
+        if (configManager.get("debug.showmessages")) {
             pluginInstance.getLogger().info(Prefix + "A message was received and is gonna be broadcasted.");
         }
 

@@ -72,8 +72,8 @@ public class ConfigManager {
         return fileConfig.get(path) != null;
     }
 
-    public void set(String path, Object wert) {
-        fileConfig.set(path, wert);
+    public void set(String path, Object configValue) {
+        fileConfig.set(path, configValue);
         saveConfig();
     }
 

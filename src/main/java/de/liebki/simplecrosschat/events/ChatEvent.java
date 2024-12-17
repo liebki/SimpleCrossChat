@@ -1,6 +1,5 @@
 package de.liebki.simplecrosschat.events;
 
-import de.liebki.simplecrosschat.SimpleCrossChat;
 import de.liebki.simplecrosschat.utils.ConfigManager;
 import de.liebki.simplecrosschat.utils.MQTTClientManager;
 import org.bukkit.event.EventHandler;
@@ -11,12 +10,10 @@ public class ChatEvent implements Listener {
 
     MQTTClientManager mqttManagerInstance;
     ConfigManager configManager;
-    SimpleCrossChat pluginInstance;
 
-    public ChatEvent(SimpleCrossChat pluginInstance, MQTTClientManager simpleCrossChat, ConfigManager configManager) {
+    public ChatEvent(MQTTClientManager simpleCrossChat, ConfigManager configManager) {
         this.mqttManagerInstance = simpleCrossChat;
         this.configManager = configManager;
-        this.pluginInstance = pluginInstance;
     }
 
     @EventHandler

@@ -3,6 +3,7 @@ package de.liebki.simplecrosschat;
 import de.liebki.simplecrosschat.events.ChatEvent;
 import de.liebki.simplecrosschat.utils.ConfigManager;
 import de.liebki.simplecrosschat.utils.MQTTClientManager;
+import de.liebki.simplecrosschat.utils.Metrics;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.UUID;
@@ -29,9 +30,10 @@ public final class SimpleCrossChat extends JavaPlugin {
         }
 
         mqttClientManager = new MQTTClientManager(configManager, userUuid, this);
-        this.getServer().getPluginManager().registerEvents(new ChatEvent(this, mqttClientManager, configManager), this);
+        this.getServer().getPluginManager().registerEvents(new ChatEvent(mqttClientManager, configManager), this);
 
         new Thread(mqttClientManager::connect).start();
+        new Metrics(this, 24174);
     }
 
     private void createConfigDefaults() {
