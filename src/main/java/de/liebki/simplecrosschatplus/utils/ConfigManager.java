@@ -1,4 +1,4 @@
-package de.liebki.simplecrosschat.utils;
+package de.liebki.simplecrosschatplus.utils;
 
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -80,6 +80,14 @@ public class ConfigManager {
     public <T> T get(String path) {
         if (fileConfig.getString(path) == null) {
             return null;
+        }
+
+        return (T) fileConfig.get(path);
+    }
+
+    public <T> T get(String path, T defaultValue) {
+        if (fileConfig.getString(path) == null) {
+            return defaultValue;
         }
 
         return (T) fileConfig.get(path);

@@ -1,4 +1,4 @@
-package de.liebki.simplecrosschat.utils;
+package de.liebki.simplecrosschatplus.utils;
 
 /*
  * This Metrics class was auto-generated and can be copied into your project if you are

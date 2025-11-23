@@ -1,0 +1,16 @@
+package de.liebki.simplecrosschatplus.models;
+
+public enum PayloadType {
+
+    CHAT,
+    ENTITY_TRANSFER,
+    ITEM_TRANSFER,
+    MONEY_TRANSFER,
+    MONEY_CONFIRM,
+    SERVER_INFO_REQUEST,
+    SERVER_INFO_RESPONSE,
+    PRIVATE_MESSAGE,
+    SERVER_HEARTBEAT
+
+}
+

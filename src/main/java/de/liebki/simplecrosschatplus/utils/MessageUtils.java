@@ -1,4 +1,4 @@
-package de.liebki.simplecrosschat.utils;
+package de.liebki.simplecrosschatplus.utils;
 
 public class MessageUtils {
 

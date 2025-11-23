@@ -1,5 +1,70 @@
-name: SimpleCrossChat
-version: '0.1.1'
-main: de.liebki.simplecrosschat.SimpleCrossChat
-api-version: '1.21'
+name: SimpleCrossChatPlus
+version: '0.2.0'
+main: de.liebki.simplecrosschatplus.SimpleCrossChat
+api-version: '1.13'
 load: STARTUP
+softdepend: [Vault]
+
+commands:
+  scc:
+    description: SimpleCrossChatPlus main command
+    usage: /<command> [subcommand] [args]
+    aliases: [simplecrosschat, crosschat]
+  pc:
+    description: Send private cross-server message
+    usage: /<command> <player> <message>
+    aliases: [privatemsg, xmsg]
+  chat:
+    description: Join or send message to group channel
+    usage: /<command> <group> <message>
+    aliases: [groupchat, gchat]
+
+permissions:
+  sccplus.admin.*:
+    description: All SimpleCrossChatPlus admin permissions
+    default: op
+    children:
+      sccplus.admin.disable: true
+      sccplus.admin.com: true
+      sccplus.admin.info: true
+      sccplus.admin.bypass: true
+
+  sccplus.entity.transfer:
+    description: Transfer entities cross-server
+    default: true
+
+  sccplus.entity.tier.owned:
+    description: Transfer owned entities only
+    default: true
+
+  sccplus.entity.tier.animals:
+    description: Transfer all animals
+    default: op
+
+  sccplus.entity.tier.everything:
+    description: Transfer any entity type
+    default: op
+
+  sccplus.item.transfer:
+    description: Transfer items cross-server
+    default: true
+
+  sccplus.money.transfer:
+    description: Transfer money cross-server
+    default: true
+
+  sccplus.message.private:
+    description: Send private messages cross-server
+    default: true
+
+  sccplus.message.group:
+    description: Use group channels
+    default: true
+
+  sccplus.toggle.disabled:
+    description: Toggle chat disabled status
+    default: true
+
+  sccplus.toggle.notify:
+    description: Toggle notification preferences
+    default: true
