@@ -358,18 +358,19 @@ public class MQTTClientManager {
             @Override
             public void run() {
                 int playerCount = pluginInstance.getServer().getOnlinePlayers().size();
+                int maxPlayers = pluginInstance.getServer().getMaxPlayers();
 
-                double tps = 20.0;
-                try {
-                    Object server = pluginInstance.getServer();
-                    tps = ((double[]) server.getClass().getMethod("getTPS").invoke(server))[0];
-                } catch (Exception ignored) {
-                }
+                String motd = pluginInstance.getServer().getMotd();
+                String version = pluginInstance.getServer().getVersion();
+                String contact = configManager.get("general.serverip", "");
 
                 String encryptedPlayerCount = ConversationUtils.encrypt(String.valueOf(playerCount), convKey);
-                String encryptedTps = ConversationUtils.encrypt(String.format("%.2f", tps), convKey);
+                String encryptedMaxPlayers = ConversationUtils.encrypt(String.valueOf(maxPlayers), convKey);
+                String encryptedMotd = ConversationUtils.encrypt(motd, convKey);
+                String encryptedVersion = ConversationUtils.encrypt(version, convKey);
 
-                sendServerInfoResponse(requestId, encryptedPlayerCount, encryptedTps);
+                sendServerInfoResponse(requestId, encryptedPlayerCount, encryptedMaxPlayers,
+                                       encryptedMotd, encryptedVersion, contact);
             }
         }.runTask(pluginInstance);
     }
@@ -388,15 +389,27 @@ public class MQTTClientManager {
 
         String convKey = configManager.get("communication.channel.key");
         String playerCount = ConversationUtils.decrypt(json.optString("playercount", ""), convKey);
-        String tps = ConversationUtils.decrypt(json.optString("tps", ""), convKey);
         String contact = json.optString("contact", "");
+
+        // Extended info fields
+        String maxPlayers = ConversationUtils.decrypt(json.optString("maxplayers", ""), convKey);
+        String motd = ConversationUtils.decrypt(json.optString("motd", ""), convKey);
+        String version = ConversationUtils.decrypt(json.optString("version", ""), convKey);
 
         new org.bukkit.scheduler.BukkitRunnable() {
             @Override
             public void run() {
                 requester.sendMessage(MessageUtils.ColorConvert("&a=== Server Info: " + serverName + " ==="));
-                requester.sendMessage(MessageUtils.ColorConvert("&7Players online: &e" + playerCount));
-                requester.sendMessage(MessageUtils.ColorConvert("&7TPS: &e" + tps));
+                requester.sendMessage(MessageUtils.ColorConvert("&7Players: &e" + playerCount +
+                                                               (maxPlayers != null && !maxPlayers.isEmpty() ? "/" + maxPlayers : "")));
+
+                if (motd != null && !motd.isEmpty()) {
+                    requester.sendMessage(MessageUtils.ColorConvert("&7MOTD: &e" + motd));
+                }
+
+                if (version != null && !version.isEmpty()) {
+                    requester.sendMessage(MessageUtils.ColorConvert("&7Version: &e" + version));
+                }
 
                 if (contact != null && !contact.isEmpty()) {
                     requester.sendMessage(MessageUtils.ColorConvert("&7Contact: &e" + contact));
@@ -624,11 +637,12 @@ public class MQTTClientManager {
         }
     }
 
-    private void sendServerInfoResponse(String requestId, String playerCount, String tps) {
+    private void sendServerInfoResponse(String requestId, String playerCount, String maxPlayers,
+                                         String motd, String version, String contact) {
         try {
-            String contact = configManager.get("general.serverip", "");
             String jsonPayload = JsonPayloadHandler.createServerInfoResponsePayload(
-                this.userUuid, requestId, playerCount, tps, configManager.get("general.servername"), contact
+                this.userUuid, requestId, playerCount, maxPlayers, motd, version,
+                configManager.get("general.servername"), contact
             );
 
             MqttMessage message = new MqttMessage(jsonPayload.getBytes());

@@ -100,6 +100,22 @@ public final class JsonPayloadHandler {
         return jsonPayload.toString();
     }
 
+    public static String createServerInfoResponsePayload(String senderUuid, String requestId, String playerCount,
+                                                          String maxPlayers, String motd, String version,
+                                                          String serverName, String contact) {
+        JSONObject jsonPayload = new JSONObject();
+        jsonPayload.put("senderuuid", senderUuid);
+        jsonPayload.put("payloadtype", PayloadType.SERVER_INFO_RESPONSE.name());
+        jsonPayload.put("requestid", requestId);
+        jsonPayload.put("playercount", playerCount);
+        jsonPayload.put("maxplayers", maxPlayers);
+        jsonPayload.put("motd", motd);
+        jsonPayload.put("version", version);
+        jsonPayload.put("servername", serverName);
+        jsonPayload.put("contact", contact);
+        return jsonPayload.toString();
+    }
+
     public static JsonPayload readJsonPayload(String jsonString) {
         try {
             JSONObject jsonPayload = new JSONObject(jsonString);
