@@ -389,6 +389,7 @@ public class MQTTClientManager {
         String convKey = configManager.get("communication.channel.key");
         String playerCount = ConversationUtils.decrypt(json.optString("playercount", ""), convKey);
         String tps = ConversationUtils.decrypt(json.optString("tps", ""), convKey);
+        String contact = json.optString("contact", "");
 
         new org.bukkit.scheduler.BukkitRunnable() {
             @Override
@@ -396,9 +397,14 @@ public class MQTTClientManager {
                 requester.sendMessage(MessageUtils.ColorConvert("&a=== Server Info: " + serverName + " ==="));
                 requester.sendMessage(MessageUtils.ColorConvert("&7Players online: &e" + playerCount));
                 requester.sendMessage(MessageUtils.ColorConvert("&7TPS: &e" + tps));
+
+                if (contact != null && !contact.isEmpty()) {
+                    requester.sendMessage(MessageUtils.ColorConvert("&7Contact: &e" + contact));
+                }
             }
         }.runTask(pluginInstance);
     }
+
 
     private void handleServerHeartbeat(byte[] payload) {
         org.json.JSONObject json = JsonPayloadHandler.parseJson(new String(payload));
@@ -406,12 +412,13 @@ public class MQTTClientManager {
 
         String serverName = json.optString("servername", "");
         int playerCount = json.optInt("playercount", 0);
+        String contact = json.optString("contact", "");
 
         String currentServer = (String) configManager.get("general.servername");
 
         // Don't register own server
         if (!serverName.isEmpty() && !serverName.equals(currentServer)) {
-            serverRegistry.registerServer(serverName, playerCount);
+            serverRegistry.registerServer(serverName, playerCount, contact);
 
             if (configManager.get("debug.showmessages")) {
                 pluginInstance.getLogger().info(Prefix + "Heartbeat received from " + serverName + " (" + playerCount + " players)");
@@ -560,13 +567,26 @@ public class MQTTClientManager {
             sender.sendMessage(MessageUtils.ColorConvert("&7No other servers detected. Waiting for heartbeats..."));
         } else {
             for (ServerRegistry.ServerInfo info : servers.values()) {
-                sender.sendMessage(MessageUtils.ColorConvert("&e" + info.name + " &7- &f" + info.playerCount + " players"));
+                String line = "&e" + info.name + " &7- &f" + info.playerCount + " players";
+
+                if (info.contact != null && !info.contact.isEmpty()) {
+                    line += " &7| &e" + info.contact;
+                }
+
+                sender.sendMessage(MessageUtils.ColorConvert(line));
             }
         }
 
         String currentServer = (String) configManager.get("general.servername");
         int currentPlayers = pluginInstance.getServer().getOnlinePlayers().size();
-        sender.sendMessage(MessageUtils.ColorConvert("&a" + currentServer + " (this server) &7- &f" + currentPlayers + " players"));
+        String currentContact = configManager.get("general.serverip", "");
+
+        String thisServerLine = "&a" + currentServer + " (this server) &7- &f" + currentPlayers + " players";
+        if (currentContact != null && !currentContact.isEmpty()) {
+            thisServerLine += " &7| &e" + currentContact;
+        }
+
+        sender.sendMessage(MessageUtils.ColorConvert(thisServerLine));
     }
 
     public void requestServerInfo(String targetServer, org.bukkit.command.CommandSender sender) {
@@ -606,8 +626,9 @@ public class MQTTClientManager {
 
     private void sendServerInfoResponse(String requestId, String playerCount, String tps) {
         try {
+            String contact = configManager.get("general.serverip", "");
             String jsonPayload = JsonPayloadHandler.createServerInfoResponsePayload(
-                this.userUuid, requestId, playerCount, tps, configManager.get("general.servername")
+                this.userUuid, requestId, playerCount, tps, configManager.get("general.servername"), contact
             );
 
             MqttMessage message = new MqttMessage(jsonPayload.getBytes());
@@ -631,6 +652,9 @@ public class MQTTClientManager {
             String serverName = (String) configManager.get("general.servername");
             jsonPayload.put("servername", serverName);
             jsonPayload.put("playercount", pluginInstance.getServer().getOnlinePlayers().size());
+
+            String contact = configManager.get("general.serverip", "");
+            jsonPayload.put("contact", contact);
 
             MqttMessage message = new MqttMessage(jsonPayload.toString().getBytes());
             message.setQos(0); // QoS 0 for heartbeats (fire and forget)

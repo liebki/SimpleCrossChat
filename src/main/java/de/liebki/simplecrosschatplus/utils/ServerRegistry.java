@@ -22,6 +22,14 @@ public class ServerRegistry {
         servers.put(serverName, info);
     }
 
+    public void registerServer(String serverName, int playerCount, String contact) {
+        ServerInfo info = servers.getOrDefault(serverName, new ServerInfo(serverName));
+        info.lastSeen = System.currentTimeMillis();
+        info.playerCount = playerCount;
+        info.contact = contact;
+        servers.put(serverName, info);
+    }
+
     public Set<String> getActiveServers() {
         cleanupStaleServers();
         return servers.keySet();
@@ -41,13 +49,16 @@ public class ServerRegistry {
         public final String name;
         public long lastSeen;
         public int playerCount;
+        public String contact;
 
         public ServerInfo(String name) {
             this.name = name;
             this.lastSeen = System.currentTimeMillis();
             this.playerCount = 0;
+            this.contact = "";
         }
     }
+
 
 }
 

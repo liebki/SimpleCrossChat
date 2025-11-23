@@ -66,6 +66,9 @@ public final class SimpleCrossChat extends JavaPlugin {
         configManager.set("general.broadcastmessageformat", "&a%PLAYER% &0| &f%MESSAGE%");
         configManager.set("general.enabled", true);
 
+        configManager.set("general.servercontact", "");
+        configManager.set("general.serverip", "");
+
         configManager.set("general.info", "- INFO: Please be advised to take a look at the brokers technical informations");
         configManager.set("general.privacyinfo", "- INFO: Even tho the messages are not readable for outstanders, I would host my own broker for a safe communication!");
         configManager.set("technical.broker.address", "test.mosquitto.org");

@@ -88,7 +88,7 @@ public final class JsonPayloadHandler {
     }
 
     public static String createServerInfoResponsePayload(String senderUuid, String requestId, String playerCount,
-                                                          String tps, String serverName) {
+                                                          String tps, String serverName, String contact) {
         JSONObject jsonPayload = new JSONObject();
         jsonPayload.put("senderuuid", senderUuid);
         jsonPayload.put("payloadtype", PayloadType.SERVER_INFO_RESPONSE.name());
@@ -96,6 +96,7 @@ public final class JsonPayloadHandler {
         jsonPayload.put("playercount", playerCount);
         jsonPayload.put("tps", tps);
         jsonPayload.put("servername", serverName);
+        jsonPayload.put("contact", contact);
         return jsonPayload.toString();
     }
 
