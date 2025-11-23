@@ -18,6 +18,13 @@ public class ItpCommand {
     }
 
     public boolean execute(CommandSender sender, String[] args) {
+        // Check if item transfers are enabled
+        boolean itemTransfersEnabled = plugin.getConfigManager().getConfig().getBoolean("transfer.items.enabled", true);
+        if (!itemTransfersEnabled) {
+            sender.sendMessage(MessageUtils.ColorConvert("&cItem transfers are disabled on this server."));
+            return true;
+        }
+
         if (!(sender instanceof Player)) {
             sender.sendMessage(MessageUtils.ColorConvert("&cOnly players can use this command."));
             return true;
@@ -89,4 +96,3 @@ public class ItpCommand {
     }
 
 }
-

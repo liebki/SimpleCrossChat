@@ -90,6 +90,10 @@ public final class SimpleCrossChat extends JavaPlugin {
 
         configManager.set("crossserverpm.enabled", true);
 
+        configManager.set("transfer.items.enabled", true);
+        configManager.set("transfer.entities.enabled", true);
+        configManager.set("transfer.entities.tier", "owned");
+
         configManager.saveConfig();
     }
 

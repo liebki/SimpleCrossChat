@@ -18,6 +18,13 @@ public class EtpCommand {
     }
 
     public boolean execute(CommandSender sender, String[] args) {
+        // Check if entity transfers are enabled
+        boolean entityTransfersEnabled = plugin.getConfigManager().getConfig().getBoolean("transfer.entities.enabled", true);
+        if (!entityTransfersEnabled) {
+            sender.sendMessage(MessageUtils.ColorConvert("&cEntity transfers are disabled on this server."));
+            return true;
+        }
+
         if (!(sender instanceof Player)) {
             sender.sendMessage(MessageUtils.ColorConvert("&cOnly players can use this command."));
             return true;
@@ -113,11 +120,18 @@ public class EtpCommand {
     }
 
     private String determineTier(Player player, Entity entity) {
-        if (player.hasPermission("sccplus.entity.tier.everything")) {
+        // Get the server-wide tier limit from config
+        String configTier = plugin.getConfigManager().getConfig().getString("transfer.entities.tier", "owned");
+
+        // Check permissions and config tier together
+        // Config tier acts as a server-wide limit, permissions still required
+
+        if (player.hasPermission("sccplus.entity.tier.everything") && configTier.equalsIgnoreCase("everything")) {
             return "EVERYTHING";
         }
 
         if (player.hasPermission("sccplus.entity.tier.animals") &&
+            (configTier.equalsIgnoreCase("animals") || configTier.equalsIgnoreCase("everything")) &&
             EntitySerializer.isTransferableType(entity.getType(), "ALL_ANIMALS")) {
             return "ALL_ANIMALS";
         }
