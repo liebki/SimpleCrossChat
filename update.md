@@ -5,11 +5,6 @@
   - Search for the player across servers.
   - Deliver the message to the server the player is on.
 
-## Locate feature command
-- Add a `locate` command `/scc locate <playername>`:
-- Find out what server the specified player is currently on.
-- Use the configured IP/domain to indicate where a player is located.
-
 ## Admin Controls
 - Allow admins to disable the `etp` and `itp` commands for everybody.
 

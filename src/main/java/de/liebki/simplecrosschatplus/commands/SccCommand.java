@@ -6,7 +6,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
-import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,6 +22,7 @@ public class SccCommand implements CommandExecutor, TabCompleter {
     private final InfoCommand infoCommand;
     private final DisableCommand disableCommand;
     private final ToggleCommand toggleCommand;
+    private final LocateCommand locateCommand;
 
     public SccCommand(SimpleCrossChat plugin) {
         this.plugin = plugin;
@@ -34,6 +34,7 @@ public class SccCommand implements CommandExecutor, TabCompleter {
         this.infoCommand = new InfoCommand(plugin);
         this.disableCommand = new DisableCommand(plugin);
         this.toggleCommand = new ToggleCommand(plugin);
+        this.locateCommand = new LocateCommand(plugin);
     }
 
     @Override
@@ -59,6 +60,8 @@ public class SccCommand implements CommandExecutor, TabCompleter {
                 return comCommand.execute(sender, subArgs);
             case "info":
                 return infoCommand.execute(sender, subArgs);
+            case "locate":
+                return locateCommand.execute(sender, subArgs);
             case "disable":
                 return disableCommand.execute(sender, subArgs);
             case "disabled":
@@ -78,6 +81,7 @@ public class SccCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(MessageUtils.ColorConvert("&e/scc transfer <amount> <player> &7- Transfer money"));
         sender.sendMessage(MessageUtils.ColorConvert("&e/scc com &7- List connected servers"));
         sender.sendMessage(MessageUtils.ColorConvert("&e/scc info <server> &7- Get server info"));
+        sender.sendMessage(MessageUtils.ColorConvert("&e/scc locate <player> &7- Find a player's location"));
         sender.sendMessage(MessageUtils.ColorConvert("&e/scc disabled &7- Toggle chat disabled"));
         sender.sendMessage(MessageUtils.ColorConvert("&e/scc notify <on|off> &7- Toggle notifications"));
 
@@ -91,7 +95,7 @@ public class SccCommand implements CommandExecutor, TabCompleter {
         List<String> completions = new ArrayList<>();
 
         if (args.length == 1) {
-            completions.addAll(Arrays.asList("etp", "itp", "get", "transfer", "com", "info", "disabled", "notify"));
+            completions.addAll(Arrays.asList("etp", "itp", "get", "transfer", "com", "info", "locate", "disabled", "notify"));
 
             if (sender.hasPermission("sccplus.admin.disable")) {
                 completions.add("disable");

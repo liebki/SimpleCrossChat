@@ -116,6 +116,47 @@ public final class JsonPayloadHandler {
         return jsonPayload.toString();
     }
 
+    public static String createPlayerLocationRequestPayload(String senderUuid, String requestId,
+                                                            String targetPlayerName, String requesterName) {
+        JSONObject jsonPayload = new JSONObject();
+        jsonPayload.put("senderuuid", senderUuid);
+        jsonPayload.put("payloadtype", PayloadType.PLAYER_LOCATION_REQUEST.name());
+        jsonPayload.put("requestid", requestId);
+        jsonPayload.put("targetplayer", targetPlayerName);
+        jsonPayload.put("requestername", requesterName);
+        return jsonPayload.toString();
+    }
+
+    public static String createPlayerLocationResponsePayload(String senderUuid, String requestId,
+                                                             String targetPlayerName, String serverName,
+                                                             String contact, boolean found) {
+        JSONObject jsonPayload = new JSONObject();
+        jsonPayload.put("senderuuid", senderUuid);
+        jsonPayload.put("payloadtype", PayloadType.PLAYER_LOCATION_RESPONSE.name());
+        jsonPayload.put("requestid", requestId);
+        jsonPayload.put("targetplayer", targetPlayerName);
+        jsonPayload.put("servername", serverName);
+        jsonPayload.put("contact", contact);
+        jsonPayload.put("found", found);
+        jsonPayload.put("disabled", false);
+        return jsonPayload.toString();
+    }
+
+    public static String createPlayerLocationResponsePayload(String senderUuid, String requestId,
+                                                             String targetPlayerName, String serverName,
+                                                             String contact, boolean found, boolean disabled) {
+        JSONObject jsonPayload = new JSONObject();
+        jsonPayload.put("senderuuid", senderUuid);
+        jsonPayload.put("payloadtype", PayloadType.PLAYER_LOCATION_RESPONSE.name());
+        jsonPayload.put("requestid", requestId);
+        jsonPayload.put("targetplayer", targetPlayerName);
+        jsonPayload.put("servername", serverName);
+        jsonPayload.put("contact", contact);
+        jsonPayload.put("found", found);
+        jsonPayload.put("disabled", disabled);
+        return jsonPayload.toString();
+    }
+
     public static JsonPayload readJsonPayload(String jsonString) {
         try {
             JSONObject jsonPayload = new JSONObject(jsonString);

@@ -61,6 +61,10 @@ permissions:
     description: Use group channels
     default: true
 
+  sccplus.player.locate:
+    description: Locate players across servers
+    default: true
+
   sccplus.toggle.disabled:
     description: Toggle chat disabled status
     default: true

@@ -26,6 +26,7 @@ public class MQTTClientManager {
     private final SimpleCrossChat pluginInstance;
 
     private final Map<String, org.bukkit.command.CommandSender> pendingInfoRequests;
+    private final Map<String, org.bukkit.command.CommandSender> pendingLocationRequests;
     private final ServerRegistry serverRegistry;
 
     public MQTTClientManager(ConfigManager config, String userUuid, SimpleCrossChat pluginInstance) {
@@ -34,6 +35,7 @@ public class MQTTClientManager {
         this.properties = new MqttProperties();
         this.pluginInstance = pluginInstance;
         this.pendingInfoRequests = new HashMap<>();
+        this.pendingLocationRequests = new HashMap<>();
         this.serverRegistry = new ServerRegistry(60); // 60 second timeout
 
         this.properties.setSubscriptionIdentifiers(Arrays.asList(new Integer[]{0}));
@@ -183,6 +185,12 @@ public class MQTTClientManager {
                     break;
                 case SERVER_HEARTBEAT:
                     handleServerHeartbeat(message.getPayload());
+                    break;
+                case PLAYER_LOCATION_REQUEST:
+                    handlePlayerLocationRequest(message.getPayload());
+                    break;
+                case PLAYER_LOCATION_RESPONSE:
+                    handlePlayerLocationResponse(message.getPayload());
                     break;
                 default:
                     if (configManager.get("debug.showmessages")) {
@@ -679,6 +687,130 @@ public class MQTTClientManager {
         } catch (Exception e) {
             // Silently fail for heartbeats
         }
+    }
+
+    public void requestPlayerLocation(String playerName, org.bukkit.command.CommandSender sender) {
+        try {
+            String requestId = java.util.UUID.randomUUID().toString().substring(0, 8);
+
+            String jsonPayload = JsonPayloadHandler.createPlayerLocationRequestPayload(
+                this.userUuid, requestId, playerName, sender.getName()
+            );
+
+            MqttMessage message = new MqttMessage(jsonPayload.getBytes());
+            message.setQos(1);
+
+            String convTopic = configManager.get("communication.channel.id");
+            IMqttToken token = client.publish(convTopic, message);
+            token.waitForCompletion();
+
+            pendingLocationRequests.put(requestId, sender);
+
+            new org.bukkit.scheduler.BukkitRunnable() {
+                @Override
+                public void run() {
+                    if (pendingLocationRequests.remove(requestId) != null) {
+                        sender.sendMessage(MessageUtils.ColorConvert("&c" + playerName + " could not be found on any connected server."));
+                    }
+                }
+            }.runTaskLater(pluginInstance, 100L);
+
+        } catch (MqttException e) {
+            pluginInstance.getLogger().severe(Prefix + "Error requesting player location: " + e.getMessage());
+        }
+    }
+
+    private void handlePlayerLocationRequest(byte[] payload) {
+        org.json.JSONObject json = JsonPayloadHandler.parseJson(new String(payload));
+        if (json == null) return;
+
+        String targetPlayerName = json.optString("targetplayer", "");
+        String requestId = json.optString("requestid", "");
+        String requesterName = json.optString("requestername", "");
+
+        // Check if locate remote resolution is enabled
+        boolean allowRemoteResolution = configManager.get("locate.allow-remote-resolution", true);
+        if (!allowRemoteResolution) {
+            String serverName = configManager.get("general.servername");
+            String jsonPayload = JsonPayloadHandler.createPlayerLocationResponsePayload(
+                this.userUuid, requestId, targetPlayerName, serverName, "", false, true
+            );
+
+            try {
+                MqttMessage message = new MqttMessage(jsonPayload.getBytes());
+                message.setQos(1);
+
+                String convTopic = configManager.get("communication.channel.id");
+                IMqttToken token = client.publish(convTopic, message);
+                token.waitForCompletion();
+
+            } catch (MqttException e) {
+                pluginInstance.getLogger().severe(Prefix + "Error sending player location response: " + e.getMessage());
+            }
+            return;
+        }
+
+        // Check if player is on this server
+        org.bukkit.entity.Player player = pluginInstance.getServer().getPlayer(targetPlayerName);
+        if (player != null && player.isOnline()) {
+            String serverName = configManager.get("general.servername");
+            String contact = configManager.get("general.serverip", "");
+
+            // Notify the player for privacy reasons
+            boolean notifyPlayer = configManager.get("locate.notify-located-player", true);
+            if (notifyPlayer) {
+                player.sendMessage(MessageUtils.ColorConvert("&7[Privacy Notice] Your location was queried by &e" + requesterName));
+            }
+
+            String jsonPayload = JsonPayloadHandler.createPlayerLocationResponsePayload(
+                this.userUuid, requestId, targetPlayerName, serverName, contact != null ? contact : "", true, false
+            );
+
+            try {
+                MqttMessage message = new MqttMessage(jsonPayload.getBytes());
+                message.setQos(1);
+
+                String convTopic = configManager.get("communication.channel.id");
+                IMqttToken token = client.publish(convTopic, message);
+                token.waitForCompletion();
+
+            } catch (MqttException e) {
+                pluginInstance.getLogger().severe(Prefix + "Error sending player location response: " + e.getMessage());
+            }
+        }
+    }
+
+    private void handlePlayerLocationResponse(byte[] payload) {
+        org.json.JSONObject json = JsonPayloadHandler.parseJson(new String(payload));
+        if (json == null) return;
+
+        String requestId = json.optString("requestid", "");
+        String targetPlayerName = json.optString("targetplayer", "");
+        String serverName = json.optString("servername", "");
+        String contact = json.optString("contact", "");
+        boolean found = json.optBoolean("found", false);
+        boolean disabled = json.optBoolean("disabled", false);
+
+        org.bukkit.command.CommandSender requester = pendingLocationRequests.remove(requestId);
+        if (requester == null) {
+            return;
+        }
+
+        new org.bukkit.scheduler.BukkitRunnable() {
+            @Override
+            public void run() {
+                if (disabled) {
+                    requester.sendMessage(MessageUtils.ColorConvert("&cThe server the player is on has disabled this functionality."));
+                } else if (found) {
+                    requester.sendMessage(MessageUtils.ColorConvert("&a&l=== Player Location ==="));
+                    requester.sendMessage(MessageUtils.ColorConvert("&e" + targetPlayerName + " &7is on &e" + serverName));
+
+                    if (contact != null && !contact.isEmpty()) {
+                        requester.sendMessage(MessageUtils.ColorConvert("&7Location: &e" + contact));
+                    }
+                }
+            }
+        }.runTask(pluginInstance);
     }
 
     public void startHeartbeatTask() {

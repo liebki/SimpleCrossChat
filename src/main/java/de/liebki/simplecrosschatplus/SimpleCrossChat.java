@@ -86,6 +86,10 @@ public final class SimpleCrossChat extends JavaPlugin {
 
         configManager.set("ratelimit.cooldown-seconds", 30);
 
+        configManager.set("locate.enabled", true);
+        configManager.set("locate.allow-remote-resolution", true);
+        configManager.set("locate.notify-located-player", true);
+
         configManager.saveConfig();
     }
 
