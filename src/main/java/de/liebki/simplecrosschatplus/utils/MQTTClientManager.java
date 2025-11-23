@@ -326,6 +326,13 @@ public class MQTTClientManager {
     }
 
     private void handlePrivateMessagePayload(byte[] payload) {
+        // Check if feature is enabled - handle both boolean and string "false"
+        Object pmEnabledObj = configManager.getConfig().get("crossserverpm.enabled");
+        boolean pmEnabled = pmEnabledObj == null || pmEnabledObj.toString().equalsIgnoreCase("true");
+        if (!pmEnabled) {
+            return;
+        }
+
         org.json.JSONObject json = JsonPayloadHandler.parseJson(new String(payload));
         if (json == null) return;
 
@@ -333,7 +340,6 @@ public class MQTTClientManager {
         String targetPlayer = ConversationUtils.decrypt(json.optString("targetplayer", ""), convKey);
         String senderName = ConversationUtils.decrypt(json.optString("sendername", ""), convKey);
         String message = ConversationUtils.decrypt(json.optString("message", ""), convKey);
-        String sourceServer = ConversationUtils.decrypt(json.optString("servername", ""), convKey);
 
         new org.bukkit.scheduler.BukkitRunnable() {
             @Override
@@ -341,7 +347,7 @@ public class MQTTClientManager {
                 org.bukkit.entity.Player player = pluginInstance.getServer().getPlayer(targetPlayer);
                 if (player != null && player.isOnline()) {
                     if (!pluginInstance.getPlayerStateManager().isNotifyDisabled(player.getUniqueId())) {
-                        player.sendMessage(MessageUtils.ColorConvert("&7[&dPM&7] &efrom " + senderName + " &7(" + sourceServer + ")&7: &f" + message));
+                        player.sendMessage(MessageUtils.ColorConvert("&7[&dPM&7] &efrom " + senderName + "&7: &f" + message));
                     }
                 }
             }
@@ -534,6 +540,13 @@ public class MQTTClientManager {
     }
 
     public void sendPrivateMessage(String targetPlayer, String message, String senderName) {
+        // Check if feature is enabled - handle both boolean and string "false"
+        Object pmEnabledObj = configManager.getConfig().get("crossserverpm.enabled");
+        boolean pmEnabled = pmEnabledObj == null || pmEnabledObj.toString().equalsIgnoreCase("true");
+        if (!pmEnabled) {
+            return;
+        }
+
         try {
             String convKey = configManager.get("communication.channel.key");
             String encryptedTargetPlayer = ConversationUtils.encrypt(targetPlayer, convKey);
@@ -557,29 +570,6 @@ public class MQTTClientManager {
         }
     }
 
-    public void sendGroupMessage(String groupName, String message, String senderName) {
-        try {
-            String convKey = configManager.get("communication.channel.key");
-            String groupTopic = configManager.get("communication.channel.id") + "/group/" + groupName;
-
-            String encryptedMessage = ConversationUtils.encrypt(message, convKey);
-            String encryptedSenderName = ConversationUtils.encrypt(senderName, convKey);
-            String encryptedServerName = ConversationUtils.encrypt(configManager.get("general.servername"), convKey);
-
-            String jsonPayload = JsonPayloadHandler.createJsonPayload(
-                this.userUuid, encryptedMessage, encryptedSenderName, encryptedServerName
-            );
-
-            MqttMessage mqttMessage = new MqttMessage(jsonPayload.getBytes());
-            mqttMessage.setQos(1);
-
-            IMqttToken token = client.publish(groupTopic, mqttMessage);
-            token.waitForCompletion();
-
-        } catch (MqttException e) {
-            pluginInstance.getLogger().severe(Prefix + "Error sending group message: " + e.getMessage());
-        }
-    }
 
     public void requestServerList(org.bukkit.command.CommandSender sender) {
         Map<String, ServerRegistry.ServerInfo> servers = serverRegistry.getServerDetails();

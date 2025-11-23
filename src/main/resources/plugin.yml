@@ -10,14 +10,10 @@ commands:
     description: SimpleCrossChatPlus main command
     usage: /<command> [subcommand] [args]
     aliases: [simplecrosschat, crosschat]
-  pc:
-    description: Send private cross-server message
+  sccpm:
+    description: Send cross-server private message
     usage: /<command> <player> <message>
-    aliases: [privatemsg, xmsg]
-  chat:
-    description: Join or send message to group channel
-    usage: /<command> <group> <message>
-    aliases: [groupchat, gchat]
+    aliases: [xpm, crosspm]
 
 permissions:
   sccplus.admin.*:

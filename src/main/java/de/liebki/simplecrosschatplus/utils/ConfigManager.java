@@ -78,7 +78,7 @@ public class ConfigManager {
     }
 
     public <T> T get(String path) {
-        if (fileConfig.getString(path) == null) {
+        if (fileConfig.get(path) == null) {
             return null;
         }
 
@@ -86,7 +86,7 @@ public class ConfigManager {
     }
 
     public <T> T get(String path, T defaultValue) {
-        if (fileConfig.getString(path) == null) {
+        if (fileConfig.get(path) == null) {
             return defaultValue;
         }
 

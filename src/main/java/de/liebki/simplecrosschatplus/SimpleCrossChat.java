@@ -1,8 +1,7 @@
 package de.liebki.simplecrosschatplus;
 
-import de.liebki.simplecrosschatplus.commands.ChatCommand;
-import de.liebki.simplecrosschatplus.commands.PcCommand;
 import de.liebki.simplecrosschatplus.commands.SccCommand;
+import de.liebki.simplecrosschatplus.commands.SccmCommand;
 import de.liebki.simplecrosschatplus.events.ChatEvent;
 import de.liebki.simplecrosschatplus.utils.*;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -49,8 +48,7 @@ public final class SimpleCrossChat extends JavaPlugin {
         this.getServer().getPluginManager().registerEvents(new ChatEvent(mqttClientManager, configManager, this), this);
 
         this.getCommand("scc").setExecutor(new SccCommand(this));
-        this.getCommand("pc").setExecutor(new PcCommand(this));
-        this.getCommand("chat").setExecutor(new ChatCommand(this));
+        this.getCommand("sccpm").setExecutor(new SccmCommand(this));
 
         new Thread(mqttClientManager::connect).start();
         mqttClientManager.startHeartbeatTask();
@@ -89,6 +87,8 @@ public final class SimpleCrossChat extends JavaPlugin {
         configManager.set("locate.enabled", true);
         configManager.set("locate.allow-remote-resolution", true);
         configManager.set("locate.notify-located-player", true);
+
+        configManager.set("crossserverpm.enabled", true);
 
         configManager.saveConfig();
     }

@@ -84,6 +84,9 @@ public class SccCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(MessageUtils.ColorConvert("&e/scc locate <player> &7- Find a player's location"));
         sender.sendMessage(MessageUtils.ColorConvert("&e/scc disabled &7- Toggle chat disabled"));
         sender.sendMessage(MessageUtils.ColorConvert("&e/scc notify <on|off> &7- Toggle notifications"));
+        sender.sendMessage(MessageUtils.ColorConvert("&7"));
+        sender.sendMessage(MessageUtils.ColorConvert("&eOther Commands:"));
+        sender.sendMessage(MessageUtils.ColorConvert("&e/sccpm <player> <message> &7- Send private message"));
 
         if (sender.hasPermission("sccplus.admin.disable")) {
             sender.sendMessage(MessageUtils.ColorConvert("&e/scc disable <player> &7- Disable player"));
