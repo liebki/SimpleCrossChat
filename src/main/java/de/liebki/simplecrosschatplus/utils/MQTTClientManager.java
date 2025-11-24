@@ -2,6 +2,7 @@ package de.liebki.simplecrosschatplus.utils;
 
 import de.liebki.simplecrosschatplus.SimpleCrossChat;
 import de.liebki.simplecrosschatplus.models.JsonPayload;
+import org.bukkit.Sound;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.eclipse.paho.mqttv5.client.IMqttToken;
 import org.eclipse.paho.mqttv5.client.MqttAsyncClient;
@@ -29,6 +30,14 @@ public class MQTTClientManager {
     private final Map<String, org.bukkit.command.CommandSender> pendingLocationRequests;
     private final ServerRegistry serverRegistry;
 
+    // Connection state management
+    private volatile boolean isConnected = false;
+    private volatile long lastConnectionAttempt = 0;
+    private volatile int reconnectAttempts = 0;
+    private static final long RECONNECT_BACKOFF_BASE_MS = 5000; // 5 seconds
+    private static final long RECONNECT_MAX_BACKOFF_MS = 300000; // 5 minutes
+    private static final int MAX_RECONNECT_ATTEMPTS = 10;
+
     public MQTTClientManager(ConfigManager config, String userUuid, SimpleCrossChat pluginInstance) {
         this.configManager = config;
         this.userUuid = userUuid;
@@ -44,25 +53,46 @@ public class MQTTClientManager {
     public void connect() {
         try {
             String broker = getCompleteBrokerAddress();
-            client = new MqttAsyncClient(broker, userUuid);
+
+            if (client == null) {
+                client = new MqttAsyncClient(broker, userUuid);
+            }
+
+            if (client.isConnected()) {
+                pluginInstance.getLogger().info(Prefix + "Already connected to broker: " + broker);
+                isConnected = true;
+                reconnectAttempts = 0;
+                return;
+            }
 
             MqttConnectionOptions connOpts = new MqttConnectionOptions();
             connOpts.setCleanStart(true);
 
             pluginInstance.getLogger().info(Prefix + "Connecting to your configured broker: " + broker);
-            IMqttToken token = client.connect(connOpts);
+            lastConnectionAttempt = System.currentTimeMillis();
 
+            IMqttToken token = client.connect(connOpts);
             token.waitForCompletion();
+
+            isConnected = true;
+            reconnectAttempts = 0;
+            errorSendCounter = 0;
+
             pluginInstance.getLogger().info(Prefix + "Connected to your configured broker: " + broker);
 
             String convTopic = configManager.get("communication.channel.id");
             subscribeToTopic(convTopic);
 
         } catch (MqttException e) {
-            pluginInstance.getLogger().warning(Prefix + "Disabling SimpleCrossChat because of connection problems, please resolve these!");
-            pluginInstance.getLogger().severe(Prefix + "Error while connecting to broker: " + e.getMessage());
+            isConnected = false;
+            reconnectAttempts++;
 
-            pluginInstance.getServer().getPluginManager().disablePlugin(pluginInstance);
+            pluginInstance.getLogger().warning(Prefix + "Connection attempt " + reconnectAttempts + " failed: " + e.getMessage());
+
+            if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+                pluginInstance.getLogger().severe(Prefix + "Max reconnection attempts (" + MAX_RECONNECT_ATTEMPTS + ") reached. Disabling SimpleCrossChat!");
+                pluginInstance.getServer().getPluginManager().disablePlugin(pluginInstance);
+            }
         }
     }
 
@@ -83,14 +113,17 @@ public class MQTTClientManager {
                 token.waitForCompletion();
                 pluginInstance.getLogger().info(Prefix + "Disconnected from your configured broker " + getCompleteBrokerAddress());
             }
+            isConnected = false;
         } catch (MqttException e) {
             pluginInstance.getLogger().severe(Prefix + "Error while disconnecting from broker: " + e.getMessage());
+            isConnected = false;
         }
     }
 
     public void sendMessage(String messageContent, String username, String servername) {
 
-        if(!client.isConnected()) {
+        if (client == null || !client.isConnected()) {
+            pluginInstance.getLogger().warning(Prefix + "Connection lost, attempting to reconnect...");
             connect();
         }
 
@@ -255,6 +288,12 @@ public class MQTTClientManager {
             targetServer
         );
 
+        // Play sound for receiving entity
+        org.bukkit.entity.Player targetPlayer = pluginInstance.getServer().getPlayer(playerName);
+        if (targetPlayer != null && targetPlayer.isOnline()) {
+            targetPlayer.playSound(targetPlayer.getLocation(), Sound.BLOCK_BELL_USE, 1.0f, 1.0f);
+        }
+
         pluginInstance.getLogger().info(Prefix + "Entity transfer received. UID: " + transferUid);
     }
 
@@ -291,6 +330,12 @@ public class MQTTClientManager {
             targetServer
         );
 
+        // Play sound for receiving item
+        org.bukkit.entity.Player targetPlayer = pluginInstance.getServer().getPlayer(playerName);
+        if (targetPlayer != null && targetPlayer.isOnline()) {
+            targetPlayer.playSound(targetPlayer.getLocation(), Sound.BLOCK_BELL_USE, 1.0f, 1.0f);
+        }
+
         pluginInstance.getLogger().info(Prefix + "Item transfer received. UID: " + transferUid);
     }
 
@@ -312,6 +357,8 @@ public class MQTTClientManager {
                     double amountValue = Double.parseDouble(amount);
                     if (VaultIntegration.deposit(player, amountValue)) {
                         player.sendMessage(MessageUtils.ColorConvert("&aYou received " + VaultIntegration.format(amountValue) + " from " + senderPlayer + " (from " + sourceServer + ")"));
+                        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+
                         pluginInstance.getAuditLogger().logTransfer(transferUid, senderPlayer, sourceServer,
                             configManager.get("general.servername"), AuditLogger.TransferType.MONEY,
                             AuditLogger.TransferResult.SUCCESS, "Amount: " + amount);
@@ -348,6 +395,7 @@ public class MQTTClientManager {
                 if (player != null && player.isOnline()) {
                     if (!pluginInstance.getPlayerStateManager().isNotifyDisabled(player.getUniqueId())) {
                         player.sendMessage(MessageUtils.ColorConvert("&7[&dPM&7] &efrom " + senderName + "&7: &f" + message));
+                        player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
                     }
                 }
             }
@@ -807,11 +855,35 @@ public class MQTTClientManager {
         new org.bukkit.scheduler.BukkitRunnable() {
             @Override
             public void run() {
-                if (client != null && client.isConnected()) {
+                // Check connection state and attempt to repair if needed
+                if (client == null || !client.isConnected()) {
+                    isConnected = false;
+
+                    // Check if enough time has passed before attempting reconnection
+                    long timeSinceLastAttempt = System.currentTimeMillis() - lastConnectionAttempt;
+                    long backoffDelay = calculateBackoffDelay(reconnectAttempts);
+
+                    if (timeSinceLastAttempt >= backoffDelay) {
+                        pluginInstance.getLogger().warning(Prefix + "Connection lost. Attempting automatic reconnection (attempt " + (reconnectAttempts + 1) + "/" + MAX_RECONNECT_ATTEMPTS + ")");
+                        connect();
+                    }
+                } else {
+                    // Connection is good, send heartbeat
+                    isConnected = true;
                     sendHeartbeat();
                 }
             }
         }.runTaskTimerAsynchronously(pluginInstance, 100L, 200L); // Every 10 seconds
+    }
+
+    private long calculateBackoffDelay(int attemptCount) {
+        // Exponential backoff: 5s, 10s, 20s, 40s, 80s, 160s, 300s, 300s, 300s...
+        long delay = RECONNECT_BACKOFF_BASE_MS * (long) Math.pow(2, Math.min(attemptCount, 5));
+        return Math.min(delay, RECONNECT_MAX_BACKOFF_MS);
+    }
+
+    public boolean isConnectionHealthy() {
+        return isConnected && client != null && client.isConnected();
     }
 
 }

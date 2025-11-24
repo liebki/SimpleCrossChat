@@ -6,6 +6,7 @@ import de.liebki.simplecrosschatplus.events.ChatEvent;
 import de.liebki.simplecrosschatplus.utils.*;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.Random;
 import java.util.UUID;
 
 public final class SimpleCrossChat extends JavaPlugin {
@@ -60,7 +61,8 @@ public final class SimpleCrossChat extends JavaPlugin {
         configManager.set("debug.showmessages", false);
 
         configManager.set("general.info", "- INFO: your servername is publicly viewable and so are the names of the others!");
-        configManager.set("general.servername", this.getServer().getName());
+        String randomServerName = generateRandomServerName();
+        configManager.set("general.servername", randomServerName);
         configManager.set("general.broadcastmessageformat", "&a%PLAYER% &0| &f%MESSAGE%");
         configManager.set("general.enabled", true);
 
@@ -92,7 +94,11 @@ public final class SimpleCrossChat extends JavaPlugin {
 
         configManager.set("transfer.items.enabled", true);
         configManager.set("transfer.entities.enabled", true);
-        configManager.set("transfer.entities.tier", "owned");
+        configManager.setWithComment("transfer.entities.tier", "owned",
+                "Entity transfer tier - Controls what players can transfer:",
+                "  owned - Only transfer entities owned by the player (e.g., tamed animals)",
+                "  animals - Transfer all animal entities (not owned)",
+                "  everything - Transfer any entity type (players, mobs, armor stands, etc.)");
 
         configManager.saveConfig();
     }
@@ -104,6 +110,18 @@ public final class SimpleCrossChat extends JavaPlugin {
         if (playerStateManager != null) {
             playerStateManager.savePlayerData();
         }
+    }
+
+    private String generateRandomServerName() {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        Random random = new Random();
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < 3; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+
+        return "server-" + sb.toString();
     }
 
     public PlayerStateManager getPlayerStateManager() {

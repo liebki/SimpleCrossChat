@@ -62,6 +62,7 @@ public class ItpCommand {
         }
 
         double cost = plugin.configManager.get("economy.item.cost", 25.0);
+
         if (cost > 0 && !VaultIntegration.hasEnough(player, cost)) {
             player.sendMessage(MessageUtils.ColorConvert("&cYou need " + VaultIntegration.format(cost) + " to transfer items."));
             return true;

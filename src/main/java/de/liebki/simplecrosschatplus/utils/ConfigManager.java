@@ -6,6 +6,11 @@ import org.bukkit.plugin.Plugin;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ConfigManager {
 
@@ -75,6 +80,36 @@ public class ConfigManager {
     public void set(String path, Object configValue) {
         fileConfig.set(path, configValue);
         saveConfig();
+    }
+
+    public void setWithComment(String path, Object configValue, String... comments) {
+        fileConfig.set(path, configValue);
+        saveConfig();
+        injectCommentAbovePath(path, comments);
+    }
+
+    private void injectCommentAbovePath(String path, String... comments) {
+        try {
+            List<String> lines = Files.readAllLines(file.toPath(), StandardCharsets.UTF_8);
+            List<String> newLines = new ArrayList<>();
+
+            String searchKey = path.substring(path.lastIndexOf('.') + 1) + ":";
+            boolean commentAdded = false;
+
+            for (String line : lines) {
+                if (!commentAdded && line.trim().startsWith(searchKey)) {
+                    for (String comment : comments) {
+                        newLines.add("# " + comment);
+                    }
+                    commentAdded = true;
+                }
+                newLines.add(line);
+            }
+
+            Files.write(file.toPath(), newLines, StandardCharsets.UTF_8, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+        } catch (IOException e) {
+            pluginInstance.getLogger().warning("Could not inject comments: " + e.getMessage());
+        }
     }
 
     public <T> T get(String path) {

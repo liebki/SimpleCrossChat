@@ -85,13 +85,15 @@ public class EtpCommand {
             return true;
         }
 
+        boolean hasBypassPermission = player.hasPermission("sccplus.entity.transfer.bypass");
         double cost = getCostForTier(tier);
-        if (cost > 0 && !VaultIntegration.hasEnough(player, cost)) {
+
+        if (!hasBypassPermission && cost > 0 && !VaultIntegration.hasEnough(player, cost)) {
             player.sendMessage(MessageUtils.ColorConvert("&cYou need " + VaultIntegration.format(cost) + " to transfer this entity."));
             return true;
         }
 
-        if (cost > 0 && !VaultIntegration.withdraw(player, cost)) {
+        if (!hasBypassPermission && cost > 0 && !VaultIntegration.withdraw(player, cost)) {
             player.sendMessage(MessageUtils.ColorConvert("&cFailed to withdraw funds."));
             return true;
         }
@@ -99,7 +101,7 @@ public class EtpCommand {
         String serializedEntity = EntitySerializer.serializeEntity(entity);
         if (serializedEntity == null) {
             player.sendMessage(MessageUtils.ColorConvert("&cFailed to serialize entity."));
-            if (cost > 0) {
+            if (!hasBypassPermission && cost > 0) {
                 VaultIntegration.deposit(player, cost);
             }
             return true;
@@ -120,6 +122,11 @@ public class EtpCommand {
     }
 
     private String determineTier(Player player, Entity entity) {
+        // Check if player has bypass permission - allows any entity
+        if (player.hasPermission("sccplus.entity.transfer.bypass")) {
+            return "EVERYTHING";
+        }
+
         // Get the server-wide tier limit from config
         String configTier = plugin.getConfigManager().getConfig().getString("transfer.entities.tier", "owned");
 

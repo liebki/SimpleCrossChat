@@ -6,6 +6,7 @@ import de.liebki.simplecrosschatplus.utils.EntitySerializer;
 import de.liebki.simplecrosschatplus.utils.ItemSerializer;
 import de.liebki.simplecrosschatplus.utils.MessageUtils;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
@@ -105,6 +106,8 @@ public class GetCommand {
 
             plugin.getAssetTransferManager().removePendingTransfer(uid);
             player.sendMessage(MessageUtils.ColorConvert("&aEntity redeemed successfully!"));
+            player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
+
             plugin.getAuditLogger().logTransfer(uid, sourcePlayer, sourceServer, plugin.configManager.get("general.servername"),
                     AuditLogger.TransferType.ENTITY, AuditLogger.TransferResult.SUCCESS, entityType.name());
 
@@ -149,9 +152,11 @@ public class GetCommand {
         if (player.getInventory().firstEmpty() == -1) {
             player.getWorld().dropItemNaturally(player.getLocation(), item);
             player.sendMessage(MessageUtils.ColorConvert("&aItem redeemed! (dropped at your feet - inventory full)"));
+            player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1.0f, 1.0f);
         } else {
             player.getInventory().addItem(item);
             player.sendMessage(MessageUtils.ColorConvert("&aItem redeemed successfully!"));
+            player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1.0f, 1.0f);
         }
 
         plugin.getAssetTransferManager().removePendingTransfer(uid);

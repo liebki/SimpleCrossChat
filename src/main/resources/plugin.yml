@@ -41,16 +41,16 @@ permissions:
     description: Transfer any entity type
     default: op
 
+  sccplus.entity.transfer.bypass:
+    description: Transfer any entity without tier restrictions
+    default: op
+
   sccplus.item.transfer:
     description: Transfer items cross-server
     default: true
 
   sccplus.money.transfer:
     description: Transfer money cross-server
-    default: true
-
-  sccplus.message.private:
-    description: Send private messages cross-server
     default: true
 
   sccplus.message.group:
