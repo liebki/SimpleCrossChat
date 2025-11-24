@@ -49,6 +49,10 @@ permissions:
     description: Transfer items cross-server
     default: true
 
+  sccplus.item.transfer.bypass:
+    description: Bypass economy cost for item transfers
+    default: op
+
   sccplus.money.transfer:
     description: Transfer money cross-server
     default: true

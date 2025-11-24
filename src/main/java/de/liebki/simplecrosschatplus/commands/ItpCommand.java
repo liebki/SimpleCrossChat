@@ -63,16 +63,18 @@ public class ItpCommand {
             return true;
         }
 
+        // Check if player has bypass permission or is OP - can transfer items without cost
+        boolean hasBypassPermission = player.hasPermission("sccplus.item.transfer.bypass") || player.isOp();
         double cost = plugin.configManager.get("economy.item.cost", 25.0);
 
-        if (cost > 0 && !VaultIntegration.hasEnough(player, cost)) {
+        if (!hasBypassPermission && cost > 0 && !VaultIntegration.hasEnough(player, cost)) {
             java.util.Map<String, String> placeholders = new java.util.HashMap<>();
             placeholders.put("cost", VaultIntegration.format(cost));
             player.sendMessage(Messages.get("itp.insufficient_funds", placeholders));
             return true;
         }
 
-        if (cost > 0 && !VaultIntegration.withdraw(player, cost)) {
+        if (!hasBypassPermission && cost > 0 && !VaultIntegration.withdraw(player, cost)) {
             player.sendMessage(Messages.get("itp.withdraw_failed"));
             return true;
         }
@@ -80,7 +82,7 @@ public class ItpCommand {
         String serializedItem = ItemSerializer.serializeItem(heldItem);
         if (serializedItem == null) {
             player.sendMessage(Messages.get("itp.serialize_failed"));
-            if (cost > 0) {
+            if (!hasBypassPermission && cost > 0) {
                 VaultIntegration.deposit(player, cost);
             }
             return true;
