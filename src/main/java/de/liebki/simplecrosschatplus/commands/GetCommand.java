@@ -4,7 +4,7 @@ import de.liebki.simplecrosschatplus.SimpleCrossChat;
 import de.liebki.simplecrosschatplus.utils.AuditLogger;
 import de.liebki.simplecrosschatplus.utils.EntitySerializer;
 import de.liebki.simplecrosschatplus.utils.ItemSerializer;
-import de.liebki.simplecrosschatplus.utils.MessageUtils;
+import de.liebki.simplecrosschatplus.utils.Messages;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.command.CommandSender;
@@ -24,26 +24,28 @@ public class GetCommand {
 
     public boolean execute(CommandSender sender, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage(MessageUtils.ColorConvert("&cOnly players can use this command."));
+            sender.sendMessage(Messages.get("global.only_players"));
             return true;
         }
 
         Player player = (Player) sender;
 
         if (plugin.getPlayerStateManager().isAdminDisabled(player.getUniqueId())) {
-            player.sendMessage(MessageUtils.ColorConvert("&cYour cross-server functionality has been disabled."));
+            player.sendMessage(Messages.get("global.cross_server_disabled"));
             return true;
         }
 
         if (args.length < 1) {
-            player.sendMessage(MessageUtils.ColorConvert("&cUsage: /scc get <UID>"));
+            player.sendMessage(Messages.get("get.usage"));
             return true;
         }
 
         String uid = args[0].toUpperCase();
 
         if (!plugin.getAssetTransferManager().hasPendingTransfer(uid)) {
-            player.sendMessage(MessageUtils.ColorConvert("&cNo pending transfer found with UID: " + uid));
+            java.util.Map<String, String> placeholders = new java.util.HashMap<>();
+            placeholders.put("uid", uid);
+            player.sendMessage(Messages.get("get.no_pending", placeholders));
             return true;
         }
 
@@ -70,7 +72,7 @@ public class GetCommand {
         Map<String, Object> entityData = EntitySerializer.deserializeEntityData(data);
         if (entityData == null || entityData.isEmpty()) {
             plugin.getLogger().warning("[GetCommand] Failed to deserialize entity data - map is null or empty");
-            player.sendMessage(MessageUtils.ColorConvert("&cFailed to deserialize entity data."));
+            player.sendMessage(Messages.get("get.entity_deserialize_failed"));
             plugin.getAuditLogger().logTransfer(uid, sourcePlayer, sourceServer, plugin.configManager.get("general.servername"),
                     AuditLogger.TransferType.ENTITY, AuditLogger.TransferResult.FAILED, "Deserialization failed");
             return;
@@ -105,7 +107,7 @@ public class GetCommand {
             }
 
             plugin.getAssetTransferManager().removePendingTransfer(uid);
-            player.sendMessage(MessageUtils.ColorConvert("&aEntity redeemed successfully!"));
+            player.sendMessage(Messages.get("get.entity_redeemed"));
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
 
             plugin.getAuditLogger().logTransfer(uid, sourcePlayer, sourceServer, plugin.configManager.get("general.servername"),
@@ -128,7 +130,7 @@ public class GetCommand {
 
         Map<String, Object> itemData = ItemSerializer.deserializeItemData(data);
         if (itemData == null || itemData.isEmpty()) {
-            player.sendMessage(MessageUtils.ColorConvert("&cFailed to deserialize item data."));
+            player.sendMessage(Messages.get("get.item_deserialize_failed"));
             plugin.getAuditLogger().logTransfer(uid, sourcePlayer, sourceServer, plugin.configManager.get("general.servername"),
                     AuditLogger.TransferType.ITEM, AuditLogger.TransferResult.FAILED, "Deserialization failed");
             return;
@@ -151,11 +153,11 @@ public class GetCommand {
 
         if (player.getInventory().firstEmpty() == -1) {
             player.getWorld().dropItemNaturally(player.getLocation(), item);
-            player.sendMessage(MessageUtils.ColorConvert("&aItem redeemed! (dropped at your feet - inventory full)"));
+            player.sendMessage(Messages.get("get.item_redeemed_inventory_full"));
             player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1.0f, 1.0f);
         } else {
             player.getInventory().addItem(item);
-            player.sendMessage(MessageUtils.ColorConvert("&aItem redeemed successfully!"));
+            player.sendMessage(Messages.get("get.item_redeemed_inventory_ok"));
             player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, 1.0f, 1.0f);
         }
 
@@ -169,15 +171,14 @@ public class GetCommand {
 
             if (player.getInventory().firstEmpty() == -1) {
                 player.getWorld().dropItemNaturally(player.getLocation(), new ItemStack(spawnEgg, 1));
-                player.sendMessage(MessageUtils.ColorConvert("&eEntity spawn failed. Spawn egg dropped at your feet."));
+                player.sendMessage(Messages.get("get.entity_spawn_failed_drop_egg"));
             } else {
                 player.getInventory().addItem(new ItemStack(spawnEgg, 1));
-                player.sendMessage(MessageUtils.ColorConvert("&eEntity spawn failed. Given spawn egg instead."));
+                player.sendMessage(Messages.get("get.entity_spawn_failed_give_egg"));
             }
         } catch (Exception e) {
-            player.sendMessage(MessageUtils.ColorConvert("&cFailed to redeem entity. Contact an admin."));
+            player.sendMessage(Messages.get("get.entity_fallback_failed"));
         }
     }
 
 }
-

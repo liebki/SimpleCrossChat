@@ -1,7 +1,7 @@
 package de.liebki.simplecrosschatplus.commands;
 
 import de.liebki.simplecrosschatplus.SimpleCrossChat;
-import de.liebki.simplecrosschatplus.utils.MessageUtils;
+import de.liebki.simplecrosschatplus.utils.Messages;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -26,22 +26,22 @@ public class SccmCommand implements CommandExecutor {
         boolean pmEnabled = pmEnabledObj == null || pmEnabledObj.toString().equalsIgnoreCase("true");
 
         if (!pmEnabled) {
-            sender.sendMessage(MessageUtils.ColorConvert("&cThe /sccpm command is disabled on this server."));
+            sender.sendMessage(Messages.get("pm.disabled"));
             return true;
         }
 
         if (!sender.hasPermission("sccplus.message.crossserver")) {
-            sender.sendMessage(MessageUtils.ColorConvert("&cYou don't have permission to use this command."));
+            sender.sendMessage(Messages.get("pm.no_permission"));
             return true;
         }
 
         if (!(sender instanceof Player)) {
-            sender.sendMessage(MessageUtils.ColorConvert("&cOnly players can use this command."));
+            sender.sendMessage(Messages.get("pm.only_players"));
             return true;
         }
 
         if (args.length < 2) {
-            sender.sendMessage(MessageUtils.ColorConvert("&cUsage: /sccpm <player> <message>"));
+            sender.sendMessage(Messages.get("pm.usage"));
             return true;
         }
 
@@ -53,17 +53,25 @@ public class SccmCommand implements CommandExecutor {
         org.bukkit.entity.Player localPlayer = plugin.getServer().getPlayer(targetPlayer);
         if (localPlayer != null && localPlayer.isOnline()) {
             // Deliver locally
-            localPlayer.sendMessage(MessageUtils.ColorConvert("&7[&dPM&7] &efrom " + player.getName() + "&7: &f" + message));
-            sender.sendMessage(MessageUtils.ColorConvert("&a[PM] &7Message sent to &e" + targetPlayer));
+            java.util.Map<String, String> recvPlaceholders = new java.util.HashMap<>();
+            recvPlaceholders.put("sender", player.getName());
+            recvPlaceholders.put("message", message);
+            localPlayer.sendMessage(Messages.get("pm.received_local", recvPlaceholders));
+
+            java.util.Map<String, String> sentPlaceholders = new java.util.HashMap<>();
+            sentPlaceholders.put("target", targetPlayer);
+            sender.sendMessage(Messages.get("pm.sent", sentPlaceholders));
             return true;
         }
 
         // Send across servers via MQTT
         plugin.getMqttManager().sendPrivateMessage(targetPlayer, message, player.getName());
-        sender.sendMessage(MessageUtils.ColorConvert("&a[PM] &7Message sent to &e" + targetPlayer));
+
+        java.util.Map<String, String> sentPlaceholders = new java.util.HashMap<>();
+        sentPlaceholders.put("target", targetPlayer);
+        sender.sendMessage(Messages.get("pm.sent", sentPlaceholders));
 
         return true;
     }
 
 }
-

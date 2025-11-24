@@ -356,7 +356,11 @@ public class MQTTClientManager {
                 if (player != null && player.isOnline()) {
                     double amountValue = Double.parseDouble(amount);
                     if (VaultIntegration.deposit(player, amountValue)) {
-                        player.sendMessage(MessageUtils.ColorConvert("&aYou received " + VaultIntegration.format(amountValue) + " from " + senderPlayer + " (from " + sourceServer + ")"));
+                        java.util.Map<String, String> placeholders = new java.util.HashMap<>();
+                        placeholders.put("amount", VaultIntegration.format(amountValue));
+                        placeholders.put("sender", senderPlayer);
+                        placeholders.put("server", sourceServer);
+                        player.sendMessage(Messages.get("money.received", placeholders));
                         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1.0f, 1.0f);
 
                         pluginInstance.getAuditLogger().logTransfer(transferUid, senderPlayer, sourceServer,
@@ -394,7 +398,10 @@ public class MQTTClientManager {
                 org.bukkit.entity.Player player = pluginInstance.getServer().getPlayer(targetPlayer);
                 if (player != null && player.isOnline()) {
                     if (!pluginInstance.getPlayerStateManager().isNotifyDisabled(player.getUniqueId())) {
-                        player.sendMessage(MessageUtils.ColorConvert("&7[&dPM&7] &efrom " + senderName + "&7: &f" + message));
+                        java.util.Map<String, String> placeholders = new java.util.HashMap<>();
+                        placeholders.put("sender", senderName);
+                        placeholders.put("message", message);
+                        player.sendMessage(Messages.get("pm.received_cross", placeholders));
                         player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1.0f, 1.0f);
                     }
                 }
@@ -461,20 +468,23 @@ public class MQTTClientManager {
         new org.bukkit.scheduler.BukkitRunnable() {
             @Override
             public void run() {
-                requester.sendMessage(MessageUtils.ColorConvert("&a=== Server Info: " + serverName + " ==="));
-                requester.sendMessage(MessageUtils.ColorConvert("&7Players: &e" + playerCount +
-                                                               (maxPlayers != null && !maxPlayers.isEmpty() ? "/" + maxPlayers : "")));
+                requester.sendMessage(Messages.get("serverinfo.header", "server", serverName));
+
+                java.util.Map<String, String> playersPlaceholders = new java.util.HashMap<>();
+                String playersValue = playerCount + (maxPlayers != null && !maxPlayers.isEmpty() ? "/" + maxPlayers : "");
+                playersPlaceholders.put("players", playersValue);
+                requester.sendMessage(Messages.get("serverinfo.players", playersPlaceholders));
 
                 if (motd != null && !motd.isEmpty()) {
-                    requester.sendMessage(MessageUtils.ColorConvert("&7MOTD: &e" + motd));
+                    requester.sendMessage(Messages.get("serverinfo.motd", "motd", motd));
                 }
 
                 if (version != null && !version.isEmpty()) {
-                    requester.sendMessage(MessageUtils.ColorConvert("&7Version: &e" + version));
+                    requester.sendMessage(Messages.get("serverinfo.version", "version", version));
                 }
 
                 if (contact != null && !contact.isEmpty()) {
-                    requester.sendMessage(MessageUtils.ColorConvert("&7Contact: &e" + contact));
+                    requester.sendMessage(Messages.get("serverinfo.contact", "contact", contact));
                 }
             }
         }.runTask(pluginInstance);
@@ -623,7 +633,7 @@ public class MQTTClientManager {
         Map<String, ServerRegistry.ServerInfo> servers = serverRegistry.getServerDetails();
 
         if (servers.isEmpty()) {
-            player.sendMessage(MessageUtils.ColorConvert("&7No other servers detected. Waiting for heartbeats..."));
+            player.sendMessage(Messages.get("serverlist.no_servers", "", ""));
             return;
         }
 
@@ -660,7 +670,9 @@ public class MQTTClientManager {
                 @Override
                 public void run() {
                     if (pendingInfoRequests.remove(requestId) != null) {
-                        sender.sendMessage(MessageUtils.ColorConvert("&cNo response from server " + targetServer));
+                        java.util.Map<String, String> placeholders = new java.util.HashMap<>();
+                        placeholders.put("server", targetServer);
+                        sender.sendMessage(Messages.get("serverinfo.no_response", placeholders));
                     }
                 }
             }.runTaskLater(pluginInstance, 100L);
@@ -735,7 +747,9 @@ public class MQTTClientManager {
                 @Override
                 public void run() {
                     if (pendingLocationRequests.remove(requestId) != null) {
-                        sender.sendMessage(MessageUtils.ColorConvert("&c" + playerName + " could not be found on any connected server."));
+                        java.util.Map<String, String> placeholders = new java.util.HashMap<>();
+                        placeholders.put("player", playerName);
+                        sender.sendMessage(Messages.get("locate.player_not_found_global", placeholders));
                     }
                 }
             }.runTaskLater(pluginInstance, 100L);
@@ -784,7 +798,9 @@ public class MQTTClientManager {
             // Notify the player for privacy reasons
             boolean notifyPlayer = configManager.get("locate.notify-located-player", true);
             if (notifyPlayer) {
-                player.sendMessage(MessageUtils.ColorConvert("&7[Privacy Notice] Your location was queried by &e" + requesterName));
+                java.util.Map<String, String> noticePlaceholders = new java.util.HashMap<>();
+                noticePlaceholders.put("requester", requesterName);
+                player.sendMessage(Messages.get("locate.privacy_notice", noticePlaceholders));
             }
 
             String jsonPayload = JsonPayloadHandler.createPlayerLocationResponsePayload(
@@ -825,13 +841,19 @@ public class MQTTClientManager {
             @Override
             public void run() {
                 if (disabled) {
-                    requester.sendMessage(MessageUtils.ColorConvert("&cThe server the player is on has disabled this functionality."));
+                    requester.sendMessage(Messages.get("locate.disabled_remote"));
                 } else if (found) {
-                    requester.sendMessage(MessageUtils.ColorConvert("&a&l=== Player Location ==="));
-                    requester.sendMessage(MessageUtils.ColorConvert("&e" + targetPlayerName + " &7is on &e" + serverName));
+                    requester.sendMessage(Messages.get("locate.player_header"));
+
+                    java.util.Map<String, String> placeholders = new java.util.HashMap<>();
+                    placeholders.put("player", targetPlayerName);
+                    placeholders.put("server", serverName);
+                    requester.sendMessage(Messages.get("locate.player_location", placeholders));
 
                     if (contact != null && !contact.isEmpty()) {
-                        requester.sendMessage(MessageUtils.ColorConvert("&7Location: &e" + contact));
+                        java.util.Map<String, String> contactPlaceholders = new java.util.HashMap<>();
+                        contactPlaceholders.put("contact", contact);
+                        requester.sendMessage(Messages.get("locate.player_contact", contactPlaceholders));
                     }
                 }
             }

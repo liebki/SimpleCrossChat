@@ -2,7 +2,7 @@ package de.liebki.simplecrosschatplus.commands;
 
 import de.liebki.simplecrosschatplus.SimpleCrossChat;
 import de.liebki.simplecrosschatplus.utils.EntitySerializer;
-import de.liebki.simplecrosschatplus.utils.MessageUtils;
+import de.liebki.simplecrosschatplus.utils.Messages;
 import de.liebki.simplecrosschatplus.utils.VaultIntegration;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
@@ -21,35 +21,37 @@ public class EtpCommand {
         // Check if entity transfers are enabled
         boolean entityTransfersEnabled = plugin.getConfigManager().getConfig().getBoolean("transfer.entities.enabled", true);
         if (!entityTransfersEnabled) {
-            sender.sendMessage(MessageUtils.ColorConvert("&cEntity transfers are disabled on this server."));
+            sender.sendMessage(Messages.get("etp.disabled"));
             return true;
         }
 
         if (!(sender instanceof Player)) {
-            sender.sendMessage(MessageUtils.ColorConvert("&cOnly players can use this command."));
+            sender.sendMessage(Messages.get("etp.only_players"));
             return true;
         }
 
         Player player = (Player) sender;
 
         if (!player.hasPermission("sccplus.entity.transfer")) {
-            player.sendMessage(MessageUtils.ColorConvert("&cYou don't have permission to transfer entities."));
+            player.sendMessage(Messages.get("etp.no_permission"));
             return true;
         }
 
         if (plugin.getPlayerStateManager().isAdminDisabled(player.getUniqueId())) {
-            player.sendMessage(MessageUtils.ColorConvert("&cYour cross-server functionality has been disabled."));
+            player.sendMessage(Messages.get("etp.cross_server_disabled"));
             return true;
         }
 
         if (args.length < 1) {
-            player.sendMessage(MessageUtils.ColorConvert("&cUsage: /scc etp <server>"));
+            player.sendMessage(Messages.get("etp.usage"));
             return true;
         }
 
         if (plugin.getRateLimiter().isOnCooldown(player.getUniqueId(), "entity_transfer")) {
             long remaining = plugin.getRateLimiter().getRemainingCooldown(player.getUniqueId(), "entity_transfer");
-            player.sendMessage(MessageUtils.ColorConvert("&cPlease wait " + remaining + " seconds before transferring again."));
+            java.util.Map<String, String> placeholders = new java.util.HashMap<>();
+            placeholders.put("seconds", String.valueOf(remaining));
+            player.sendMessage(Messages.get("etp.cooldown", placeholders));
             return true;
         }
 
@@ -74,14 +76,14 @@ public class EtpCommand {
         }
 
         if (entity == null) {
-            player.sendMessage(MessageUtils.ColorConvert("&cNo entity found. Look at an entity."));
+            player.sendMessage(Messages.get("etp.no_entity"));
             return true;
         }
 
 
         String tier = determineTier(player, entity);
         if (tier == null) {
-            player.sendMessage(MessageUtils.ColorConvert("&cYou don't have permission to transfer this entity type."));
+            player.sendMessage(Messages.get("etp.no_permission_entity_type"));
             return true;
         }
 
@@ -89,18 +91,20 @@ public class EtpCommand {
         double cost = getCostForTier(tier);
 
         if (!hasBypassPermission && cost > 0 && !VaultIntegration.hasEnough(player, cost)) {
-            player.sendMessage(MessageUtils.ColorConvert("&cYou need " + VaultIntegration.format(cost) + " to transfer this entity."));
+            java.util.Map<String, String> placeholders = new java.util.HashMap<>();
+            placeholders.put("cost", VaultIntegration.format(cost));
+            player.sendMessage(Messages.get("etp.insufficient_funds", placeholders));
             return true;
         }
 
         if (!hasBypassPermission && cost > 0 && !VaultIntegration.withdraw(player, cost)) {
-            player.sendMessage(MessageUtils.ColorConvert("&cFailed to withdraw funds."));
+            player.sendMessage(Messages.get("etp.withdraw_failed"));
             return true;
         }
 
         String serializedEntity = EntitySerializer.serializeEntity(entity);
         if (serializedEntity == null) {
-            player.sendMessage(MessageUtils.ColorConvert("&cFailed to serialize entity."));
+            player.sendMessage(Messages.get("etp.serialize_failed"));
             if (!hasBypassPermission && cost > 0) {
                 VaultIntegration.deposit(player, cost);
             }
@@ -115,8 +119,10 @@ public class EtpCommand {
 
         plugin.getRateLimiter().setCooldown(player.getUniqueId(), "entity_transfer");
 
-        player.sendMessage(MessageUtils.ColorConvert("&aEntity transferred! UID: &e" + uid));
-        player.sendMessage(MessageUtils.ColorConvert("&7Use /scc get " + uid + " on the target server to redeem."));
+        java.util.Map<String, String> placeholders = new java.util.HashMap<>();
+        placeholders.put("uid", uid);
+        player.sendMessage(Messages.get("etp.transfer_success", placeholders));
+        player.sendMessage(Messages.get("etp.transfer_hint", placeholders));
 
         return true;
     }
@@ -168,4 +174,3 @@ public class EtpCommand {
     }
 
 }
-

@@ -1,7 +1,7 @@
 package de.liebki.simplecrosschatplus.commands;
 
 import de.liebki.simplecrosschatplus.SimpleCrossChat;
-import de.liebki.simplecrosschatplus.utils.MessageUtils;
+import de.liebki.simplecrosschatplus.utils.Messages;
 import org.bukkit.command.CommandSender;
 
 public class LocateCommand {
@@ -14,18 +14,18 @@ public class LocateCommand {
 
     public boolean execute(CommandSender sender, String[] args) {
         if (!sender.hasPermission("sccplus.player.locate")) {
-            sender.sendMessage(MessageUtils.ColorConvert("&cYou don't have permission to use this command."));
+            sender.sendMessage(Messages.get("locate.no_permission"));
             return true;
         }
 
         boolean locateEnabled = plugin.getConfigManager().get("locate.enabled", true);
         if (!locateEnabled) {
-            sender.sendMessage(MessageUtils.ColorConvert("&cThe locate command is disabled on this server."));
+            sender.sendMessage(Messages.get("locate.disabled"));
             return true;
         }
 
         if (args.length < 1) {
-            sender.sendMessage(MessageUtils.ColorConvert("&cUsage: /scc locate <playername>"));
+            sender.sendMessage(Messages.get("locate.usage"));
             return true;
         }
 
@@ -37,28 +37,37 @@ public class LocateCommand {
             String serverName = plugin.getConfigManager().get("general.servername");
             String contact = plugin.getConfigManager().get("general.serverip", "");
 
-            sender.sendMessage(MessageUtils.ColorConvert("&a&l=== Player Location ==="));
-            sender.sendMessage(MessageUtils.ColorConvert("&e" + targetPlayer + " &7is on &e" + serverName));
+            sender.sendMessage(Messages.get("locate.player_header"));
+
+            java.util.Map<String, String> placeholders = new java.util.HashMap<>();
+            placeholders.put("player", targetPlayer);
+            placeholders.put("server", serverName);
+            sender.sendMessage(Messages.get("locate.player_location", placeholders));
 
             if (contact != null && !contact.isEmpty()) {
-                sender.sendMessage(MessageUtils.ColorConvert("&7Location: &e" + contact));
+                java.util.Map<String, String> contactPlaceholders = new java.util.HashMap<>();
+                contactPlaceholders.put("contact", contact);
+                sender.sendMessage(Messages.get("locate.player_contact", contactPlaceholders));
             }
 
             // Notify the located player for privacy
             boolean notifyPlayer = plugin.getConfigManager().get("locate.notify-located-player", true);
             if (notifyPlayer) {
-                localPlayer.sendMessage(MessageUtils.ColorConvert("&7[Privacy Notice] Your location was queried by &e" + sender.getName()));
+                java.util.Map<String, String> noticePlaceholders = new java.util.HashMap<>();
+                noticePlaceholders.put("requester", sender.getName());
+                localPlayer.sendMessage(Messages.get("locate.privacy_notice", noticePlaceholders));
             }
 
             return true;
         }
 
         // Request location from other servers
-        sender.sendMessage(MessageUtils.ColorConvert("&7Searching for player: &e" + targetPlayer + "&7..."));
+        java.util.Map<String, String> searchPlaceholders = new java.util.HashMap<>();
+        searchPlaceholders.put("player", targetPlayer);
+        sender.sendMessage(Messages.get("locate.searching", searchPlaceholders));
         plugin.getMqttManager().requestPlayerLocation(targetPlayer, sender);
 
         return true;
     }
 
 }
-

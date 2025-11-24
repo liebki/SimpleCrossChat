@@ -2,6 +2,7 @@ package de.liebki.simplecrosschatplus.commands;
 
 import de.liebki.simplecrosschatplus.SimpleCrossChat;
 import de.liebki.simplecrosschatplus.utils.MessageUtils;
+import de.liebki.simplecrosschatplus.utils.Messages;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -68,7 +69,7 @@ public class SccCommand implements CommandExecutor, TabCompleter {
             case "notify":
                 return toggleCommand.execute(sender, subCommand, subArgs);
             default:
-                sender.sendMessage(MessageUtils.ColorConvert("&cUnknown subcommand. Use /scc for help."));
+                sender.sendMessage(Messages.get("scc.unknown_subcommand"));
                 return true;
         }
     }
@@ -109,4 +110,3 @@ public class SccCommand implements CommandExecutor, TabCompleter {
     }
 
 }
-

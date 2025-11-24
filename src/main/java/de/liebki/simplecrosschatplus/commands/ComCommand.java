@@ -1,7 +1,7 @@
 package de.liebki.simplecrosschatplus.commands;
 
 import de.liebki.simplecrosschatplus.SimpleCrossChat;
-import de.liebki.simplecrosschatplus.utils.MessageUtils;
+import de.liebki.simplecrosschatplus.utils.Messages;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -15,16 +15,16 @@ public class ComCommand {
 
     public boolean execute(CommandSender sender, String[] args) {
         if (!sender.hasPermission("sccplus.admin.com")) {
-            sender.sendMessage(MessageUtils.ColorConvert("&cYou don't have permission to use this command."));
+            sender.sendMessage(Messages.get("com.no_permission"));
             return true;
         }
 
         if (!(sender instanceof Player)) {
-            sender.sendMessage(MessageUtils.ColorConvert("&cOnly players can use this command."));
+            sender.sendMessage(Messages.get("global.only_players"));
             return true;
         }
 
-        sender.sendMessage(MessageUtils.ColorConvert("&7Requesting server list from broker..."));
+        sender.sendMessage(Messages.get("com.requesting_server_list"));
 
         plugin.getMqttManager().requestServerList((Player) sender);
 
@@ -32,4 +32,3 @@ public class ComCommand {
     }
 
 }
-

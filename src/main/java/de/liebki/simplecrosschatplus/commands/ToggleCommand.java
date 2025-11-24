@@ -1,7 +1,7 @@
 package de.liebki.simplecrosschatplus.commands;
 
 import de.liebki.simplecrosschatplus.SimpleCrossChat;
-import de.liebki.simplecrosschatplus.utils.MessageUtils;
+import de.liebki.simplecrosschatplus.utils.Messages;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -15,7 +15,7 @@ public class ToggleCommand {
 
     public boolean execute(CommandSender sender, String subCommand, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage(MessageUtils.ColorConvert("&cOnly players can use this command."));
+            sender.sendMessage(Messages.get("toggle.only_players"));
             return true;
         }
 
@@ -32,7 +32,7 @@ public class ToggleCommand {
 
     private boolean handleDisabledToggle(Player player) {
         if (!player.hasPermission("sccplus.toggle.disabled")) {
-            player.sendMessage(MessageUtils.ColorConvert("&cYou don't have permission to use this command."));
+            player.sendMessage(Messages.get("toggle.no_permission_disabled"));
             return true;
         }
 
@@ -40,9 +40,9 @@ public class ToggleCommand {
         plugin.getPlayerStateManager().setChatDisabled(player.getUniqueId(), !currentStatus);
 
         if (!currentStatus) {
-            player.sendMessage(MessageUtils.ColorConvert("&aYour cross-server chat is now disabled."));
+            player.sendMessage(Messages.get("toggle.chat_disabled"));
         } else {
-            player.sendMessage(MessageUtils.ColorConvert("&aYour cross-server chat is now enabled."));
+            player.sendMessage(Messages.get("toggle.chat_enabled"));
         }
 
         return true;
@@ -50,30 +50,31 @@ public class ToggleCommand {
 
     private boolean handleNotifyToggle(Player player, String[] args) {
         if (!player.hasPermission("sccplus.toggle.notify")) {
-            player.sendMessage(MessageUtils.ColorConvert("&cYou don't have permission to use this command."));
+            player.sendMessage(Messages.get("toggle.no_permission_notify"));
             return true;
         }
 
         if (args.length < 1) {
             boolean currentStatus = plugin.getPlayerStateManager().isNotifyDisabled(player.getUniqueId());
-            player.sendMessage(MessageUtils.ColorConvert("&7Notifications are currently: " + (currentStatus ? "&cOFF" : "&aON")));
-            player.sendMessage(MessageUtils.ColorConvert("&7Use /scc notify <on|off> to change."));
+            java.util.Map<String, String> statusPlaceholders = new java.util.HashMap<>();
+            statusPlaceholders.put("status", currentStatus ? "&cOFF" : "&aON");
+            player.sendMessage(Messages.get("toggle.notify_status", statusPlaceholders));
+            player.sendMessage(Messages.get("toggle.notify_hint"));
             return true;
         }
 
         String toggle = args[0].toLowerCase();
         if (toggle.equals("on")) {
             plugin.getPlayerStateManager().setNotifyDisabled(player.getUniqueId(), false);
-            player.sendMessage(MessageUtils.ColorConvert("&aNotifications enabled."));
+            player.sendMessage(Messages.get("toggle.notify_enabled"));
         } else if (toggle.equals("off")) {
             plugin.getPlayerStateManager().setNotifyDisabled(player.getUniqueId(), true);
-            player.sendMessage(MessageUtils.ColorConvert("&cNotifications disabled."));
+            player.sendMessage(Messages.get("toggle.notify_disabled_msg"));
         } else {
-            player.sendMessage(MessageUtils.ColorConvert("&cUsage: /scc notify <on|off>"));
+            player.sendMessage(Messages.get("toggle.notify_usage"));
         }
 
         return true;
     }
 
 }
-

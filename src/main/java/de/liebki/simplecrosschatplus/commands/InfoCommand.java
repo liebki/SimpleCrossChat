@@ -1,7 +1,7 @@
 package de.liebki.simplecrosschatplus.commands;
 
 import de.liebki.simplecrosschatplus.SimpleCrossChat;
-import de.liebki.simplecrosschatplus.utils.MessageUtils;
+import de.liebki.simplecrosschatplus.utils.Messages;
 import org.bukkit.command.CommandSender;
 
 public class InfoCommand {
@@ -14,18 +14,20 @@ public class InfoCommand {
 
     public boolean execute(CommandSender sender, String[] args) {
         if (!sender.hasPermission("sccplus.admin.info")) {
-            sender.sendMessage(MessageUtils.ColorConvert("&cYou don't have permission to use this command."));
+            sender.sendMessage(Messages.get("info.no_permission"));
             return true;
         }
 
         if (args.length < 1) {
-            sender.sendMessage(MessageUtils.ColorConvert("&cUsage: /scc info <server>"));
+            sender.sendMessage(Messages.get("info.usage"));
             return true;
         }
 
         String targetServer = args[0];
 
-        sender.sendMessage(MessageUtils.ColorConvert("&7Requesting info from server: &e" + targetServer));
+        java.util.Map<String, String> placeholders = new java.util.HashMap<>();
+        placeholders.put("server", targetServer);
+        sender.sendMessage(Messages.get("info.requesting_info", placeholders));
         plugin.getMqttManager().requestServerInfo(targetServer, sender);
 
         return true;
@@ -33,4 +35,3 @@ public class InfoCommand {
 
 
 }
-

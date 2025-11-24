@@ -34,7 +34,7 @@ public class ServerListGUI {
                                          String currentServerName, int currentPlayers, String currentContact) {
 
         // Use chest inventory (6 rows = 54 slots)
-        Inventory gui = Bukkit.createInventory(null, 54, MessageUtils.ColorConvert("&eConnected Servers"));
+        Inventory gui = Bukkit.createInventory(null, 54, Messages.get("serverlist.title"));
 
         int slot = 0;
 
@@ -70,6 +70,9 @@ public class ServerListGUI {
         ItemStack head = new ItemStack(headMaterial);
         ItemMeta meta = head.getItemMeta();
 
+        String rawSeparator = "&7━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
+        String coloredSeparator = MessageUtils.ColorConvert(rawSeparator);
+
         if (meta instanceof SkullMeta && headMaterial == Material.PLAYER_HEAD) {
             SkullMeta skullMeta = (SkullMeta) meta;
             // Display name with different color for current server
@@ -81,16 +84,25 @@ public class ServerListGUI {
             skullMeta.setDisplayName(MessageUtils.ColorConvert(displayName));
 
             List<String> lore = new ArrayList<>();
-            lore.add(MessageUtils.ColorConvert("&7────────────────────────"));
-            lore.add(MessageUtils.ColorConvert("&7Players: &f" + playerCount + (maxPlayers > 0 ? "&7/&f" + maxPlayers : "")));
+            lore.add(coloredSeparator);
+
+            String playersValue = String.valueOf(playerCount);
+            if (maxPlayers > 0) {
+                playersValue = playersValue + "&7/&f" + maxPlayers;
+            }
+            java.util.Map<String, String> playersPlaceholders = new java.util.HashMap<>();
+            playersPlaceholders.put("players", playersValue);
+            lore.add(Messages.get("serverlist.players", playersPlaceholders));
 
             if (contact != null && !contact.isEmpty()) {
                 lore.add("");
-                lore.add(MessageUtils.ColorConvert("&7Contact: &e" + contact));
+                java.util.Map<String, String> contactPlaceholders = new java.util.HashMap<>();
+                contactPlaceholders.put("contact", contact);
+                lore.add(Messages.get("serverlist.contact", contactPlaceholders));
             }
 
             lore.add("");
-            lore.add(MessageUtils.ColorConvert("&7────────────────────────"));
+            lore.add(coloredSeparator);
 
             skullMeta.setLore(lore);
             head.setItemMeta(skullMeta);
@@ -101,12 +113,15 @@ public class ServerListGUI {
             meta.setDisplayName(MessageUtils.ColorConvert(displayName));
 
             List<String> lore = new ArrayList<>();
-            lore.add(MessageUtils.ColorConvert("&7────────────────────────"));
-            lore.add(MessageUtils.ColorConvert("&cNo players online"));
+            lore.add(coloredSeparator);
+            lore.add(Messages.get("serverlist.offline"));
             lore.add("");
-            lore.add(MessageUtils.ColorConvert("&7Contact: &e" + (contact != null && !contact.isEmpty() ? contact : "N/A")));
+
+            java.util.Map<String, String> contactPlaceholders = new java.util.HashMap<>();
+            contactPlaceholders.put("contact", (contact != null && !contact.isEmpty()) ? contact : "N/A");
+            lore.add(Messages.get("serverlist.offline_contact", contactPlaceholders));
             lore.add("");
-            lore.add(MessageUtils.ColorConvert("&7────────────────────────"));
+            lore.add(coloredSeparator);
 
             meta.setLore(lore);
             head.setItemMeta(meta);
@@ -120,9 +135,9 @@ public class ServerListGUI {
         ItemMeta meta = closeButton.getItemMeta();
 
         if (meta != null) {
-            meta.setDisplayName(MessageUtils.ColorConvert("&c&lClose"));
+            meta.setDisplayName(Messages.get("serverlist.close_title"));
             List<String> lore = new ArrayList<>();
-            lore.add(MessageUtils.ColorConvert("&7Click to close this GUI"));
+            lore.add(Messages.get("serverlist.close_lore"));
             meta.setLore(lore);
             closeButton.setItemMeta(meta);
         }
@@ -164,4 +179,3 @@ public class ServerListGUI {
         }
     }
 }
-

@@ -2,7 +2,7 @@ package de.liebki.simplecrosschatplus.commands;
 
 import de.liebki.simplecrosschatplus.SimpleCrossChat;
 import de.liebki.simplecrosschatplus.utils.ItemSerializer;
-import de.liebki.simplecrosschatplus.utils.MessageUtils;
+import de.liebki.simplecrosschatplus.utils.Messages;
 import de.liebki.simplecrosschatplus.utils.VaultIntegration;
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
@@ -21,35 +21,37 @@ public class ItpCommand {
         // Check if item transfers are enabled
         boolean itemTransfersEnabled = plugin.getConfigManager().getConfig().getBoolean("transfer.items.enabled", true);
         if (!itemTransfersEnabled) {
-            sender.sendMessage(MessageUtils.ColorConvert("&cItem transfers are disabled on this server."));
+            sender.sendMessage(Messages.get("itp.disabled"));
             return true;
         }
 
         if (!(sender instanceof Player)) {
-            sender.sendMessage(MessageUtils.ColorConvert("&cOnly players can use this command."));
+            sender.sendMessage(Messages.get("itp.only_players"));
             return true;
         }
 
         Player player = (Player) sender;
 
         if (!player.hasPermission("sccplus.item.transfer")) {
-            player.sendMessage(MessageUtils.ColorConvert("&cYou don't have permission to transfer items."));
+            player.sendMessage(Messages.get("itp.no_permission"));
             return true;
         }
 
         if (plugin.getPlayerStateManager().isAdminDisabled(player.getUniqueId())) {
-            player.sendMessage(MessageUtils.ColorConvert("&cYour cross-server functionality has been disabled."));
+            player.sendMessage(Messages.get("itp.cross_server_disabled"));
             return true;
         }
 
         if (args.length < 1) {
-            player.sendMessage(MessageUtils.ColorConvert("&cUsage: /scc itp <server>"));
+            player.sendMessage(Messages.get("itp.usage"));
             return true;
         }
 
         if (plugin.getRateLimiter().isOnCooldown(player.getUniqueId(), "item_transfer")) {
             long remaining = plugin.getRateLimiter().getRemainingCooldown(player.getUniqueId(), "item_transfer");
-            player.sendMessage(MessageUtils.ColorConvert("&cPlease wait " + remaining + " seconds before transferring again."));
+            java.util.Map<String, String> placeholders = new java.util.HashMap<>();
+            placeholders.put("seconds", String.valueOf(remaining));
+            player.sendMessage(Messages.get("itp.cooldown", placeholders));
             return true;
         }
 
@@ -57,25 +59,27 @@ public class ItpCommand {
 
         ItemStack heldItem = player.getInventory().getItemInMainHand();
         if (heldItem.getType() == Material.AIR) {
-            player.sendMessage(MessageUtils.ColorConvert("&cYou must hold an item to transfer."));
+            player.sendMessage(Messages.get("itp.must_hold_item"));
             return true;
         }
 
         double cost = plugin.configManager.get("economy.item.cost", 25.0);
 
         if (cost > 0 && !VaultIntegration.hasEnough(player, cost)) {
-            player.sendMessage(MessageUtils.ColorConvert("&cYou need " + VaultIntegration.format(cost) + " to transfer items."));
+            java.util.Map<String, String> placeholders = new java.util.HashMap<>();
+            placeholders.put("cost", VaultIntegration.format(cost));
+            player.sendMessage(Messages.get("itp.insufficient_funds", placeholders));
             return true;
         }
 
         if (cost > 0 && !VaultIntegration.withdraw(player, cost)) {
-            player.sendMessage(MessageUtils.ColorConvert("&cFailed to withdraw funds."));
+            player.sendMessage(Messages.get("itp.withdraw_failed"));
             return true;
         }
 
         String serializedItem = ItemSerializer.serializeItem(heldItem);
         if (serializedItem == null) {
-            player.sendMessage(MessageUtils.ColorConvert("&cFailed to serialize item."));
+            player.sendMessage(Messages.get("itp.serialize_failed"));
             if (cost > 0) {
                 VaultIntegration.deposit(player, cost);
             }
@@ -90,8 +94,10 @@ public class ItpCommand {
 
         plugin.getRateLimiter().setCooldown(player.getUniqueId(), "item_transfer");
 
-        player.sendMessage(MessageUtils.ColorConvert("&aItem transferred! UID: &e" + uid));
-        player.sendMessage(MessageUtils.ColorConvert("&7Use /scc get " + uid + " on the target server to redeem."));
+        java.util.Map<String, String> placeholders = new java.util.HashMap<>();
+        placeholders.put("uid", uid);
+        player.sendMessage(Messages.get("itp.transfer_success", placeholders));
+        player.sendMessage(Messages.get("itp.transfer_hint", placeholders));
 
         return true;
     }
