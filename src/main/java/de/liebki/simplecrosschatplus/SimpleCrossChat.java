@@ -222,6 +222,7 @@ public final class SimpleCrossChat extends JavaPlugin {
         configManager.setWithComment("messages.serverinfo.no_response", "&cNo response from server %server%", "Shown when no server info response is received. %server% = target server.");
 
         // Server list GUI messages
+        configManager.setWithComment("messages.serverlist.no_servers", "&cNo servers are currently available.", "Shown when no servers are available in the server list GUI.");
         configManager.setWithComment("messages.serverlist.title", "&eConnected Servers", "Title for the connected servers GUI.");
         configManager.setWithComment("messages.serverlist.players", "&7Players: &f%players%", "Players line in server list. %players% = current/maximum players.");
         configManager.setWithComment("messages.serverlist.contact", "&7Contact: &e%contact%", "Contact line in server list.");
