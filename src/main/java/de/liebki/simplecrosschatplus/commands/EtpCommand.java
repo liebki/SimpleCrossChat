@@ -128,28 +128,29 @@ public class EtpCommand {
     }
 
     private String determineTier(Player player, Entity entity) {
-        // Check if player has bypass permission - allows any entity
-        if (player.hasPermission("sccplus.entity.transfer.bypass")) {
+        // Check if player has bypass permission or is OP - allows any entity regardless of config
+        if (player.hasPermission("sccplus.entity.transfer.bypass") || player.isOp()) {
             return "EVERYTHING";
         }
 
-        // Get the server-wide tier limit from config
+        // Get the server-wide tier limit from config - this applies to all normal players
         String configTier = plugin.getConfigManager().getConfig().getString("transfer.entities.tier", "owned");
 
-        // Check permissions and config tier together
-        // Config tier acts as a server-wide limit, permissions still required
-
-        if (player.hasPermission("sccplus.entity.tier.everything") && configTier.equalsIgnoreCase("everything")) {
+        // If config allows everything, everyone can transfer everything
+        if (configTier.equalsIgnoreCase("everything")) {
             return "EVERYTHING";
         }
 
-        if (player.hasPermission("sccplus.entity.tier.animals") &&
-            (configTier.equalsIgnoreCase("animals") || configTier.equalsIgnoreCase("everything")) &&
-            EntitySerializer.isTransferableType(entity.getType(), "ALL_ANIMALS")) {
-            return "ALL_ANIMALS";
+        // If config allows animals, everyone can transfer animals
+        if (configTier.equalsIgnoreCase("animals")) {
+            if (EntitySerializer.isTransferableType(entity.getType(), "ALL_ANIMALS")) {
+                return "ALL_ANIMALS";
+            }
+            return null; // Not an animal, deny
         }
 
-        if (player.hasPermission("sccplus.entity.tier.owned") && entity instanceof Tameable) {
+        // If config allows only owned (or any other value), check if this is an owned entity
+        if (entity instanceof Tameable) {
             Tameable tameable = (Tameable) entity;
             if (tameable.isTamed() && tameable.getOwner() != null &&
                 tameable.getOwner().getUniqueId().equals(player.getUniqueId())) {
@@ -157,6 +158,7 @@ public class EtpCommand {
             }
         }
 
+        // Entity is not owned by player, deny
         return null;
     }
 

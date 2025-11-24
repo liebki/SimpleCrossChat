@@ -30,10 +30,6 @@ public class SccmCommand implements CommandExecutor {
             return true;
         }
 
-        if (!sender.hasPermission("sccplus.message.crossserver")) {
-            sender.sendMessage(Messages.get("pm.no_permission"));
-            return true;
-        }
 
         if (!(sender instanceof Player)) {
             sender.sendMessage(Messages.get("pm.only_players"));

@@ -343,9 +343,10 @@ public class MQTTClientManager {
         org.json.JSONObject json = JsonPayloadHandler.parseJson(new String(payload));
         if (json == null) return;
 
-        String targetPlayer = json.optString("targetplayer", "");
-        String senderPlayer = json.optString("senderplayer", "");
-        String amount = json.optString("amount", "0");
+        String convKey = configManager.get("communication.channel.key");
+        String targetPlayer = ConversationUtils.decrypt(json.optString("targetplayer", ""), convKey);
+        String senderPlayer = ConversationUtils.decrypt(json.optString("senderplayer", ""), convKey);
+        String amount = ConversationUtils.decrypt(json.optString("amount", "0"), convKey);
         String transferUid = json.optString("transferuid", "");
         String sourceServer = json.optString("servername", "");
 

@@ -14,10 +14,6 @@ public class ComCommand {
     }
 
     public boolean execute(CommandSender sender, String[] args) {
-        if (!sender.hasPermission("sccplus.admin.com")) {
-            sender.sendMessage(Messages.get("com.no_permission"));
-            return true;
-        }
 
         if (!(sender instanceof Player)) {
             sender.sendMessage(Messages.get("global.only_players"));
