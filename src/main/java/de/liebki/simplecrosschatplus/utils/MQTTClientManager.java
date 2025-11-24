@@ -619,33 +619,20 @@ public class MQTTClientManager {
     }
 
 
-    public void requestServerList(org.bukkit.command.CommandSender sender) {
+    public void requestServerList(org.bukkit.entity.Player player) {
         Map<String, ServerRegistry.ServerInfo> servers = serverRegistry.getServerDetails();
 
         if (servers.isEmpty()) {
-            sender.sendMessage(MessageUtils.ColorConvert("&7No other servers detected. Waiting for heartbeats..."));
-        } else {
-            for (ServerRegistry.ServerInfo info : servers.values()) {
-                String line = "&e" + info.name + " &7- &f" + info.playerCount + " players";
-
-                if (info.contact != null && !info.contact.isEmpty()) {
-                    line += " &7| &e" + info.contact;
-                }
-
-                sender.sendMessage(MessageUtils.ColorConvert(line));
-            }
+            player.sendMessage(MessageUtils.ColorConvert("&7No other servers detected. Waiting for heartbeats..."));
+            return;
         }
 
         String currentServer = (String) configManager.get("general.servername");
         int currentPlayers = pluginInstance.getServer().getOnlinePlayers().size();
         String currentContact = configManager.get("general.serverip", "");
 
-        String thisServerLine = "&a" + currentServer + " (this server) &7- &f" + currentPlayers + " players";
-        if (currentContact != null && !currentContact.isEmpty()) {
-            thisServerLine += " &7| &e" + currentContact;
-        }
-
-        sender.sendMessage(MessageUtils.ColorConvert(thisServerLine));
+        // Open the GUI with all server information
+        ServerListGUI.openServerListGUI(player, servers, currentServer, currentPlayers, currentContact);
     }
 
     public void requestServerInfo(String targetServer, org.bukkit.command.CommandSender sender) {

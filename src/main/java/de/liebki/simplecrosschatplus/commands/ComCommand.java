@@ -3,6 +3,7 @@ package de.liebki.simplecrosschatplus.commands;
 import de.liebki.simplecrosschatplus.SimpleCrossChat;
 import de.liebki.simplecrosschatplus.utils.MessageUtils;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 public class ComCommand {
 
@@ -18,10 +19,14 @@ public class ComCommand {
             return true;
         }
 
-        sender.sendMessage(MessageUtils.ColorConvert("&a&l=== Connected Servers ==="));
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(MessageUtils.ColorConvert("&cOnly players can use this command."));
+            return true;
+        }
+
         sender.sendMessage(MessageUtils.ColorConvert("&7Requesting server list from broker..."));
 
-        plugin.getMqttManager().requestServerList(sender);
+        plugin.getMqttManager().requestServerList((Player) sender);
 
         return true;
     }

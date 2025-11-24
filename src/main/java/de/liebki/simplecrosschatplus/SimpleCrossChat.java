@@ -51,6 +51,8 @@ public final class SimpleCrossChat extends JavaPlugin {
         this.getCommand("scc").setExecutor(new SccCommand(this));
         this.getCommand("sccpm").setExecutor(new SccmCommand(this));
 
+        ServerListGUI.setPluginInstance(this);
+
         new Thread(mqttClientManager::connect).start();
         mqttClientManager.startHeartbeatTask();
         new Metrics(this, 24174);
