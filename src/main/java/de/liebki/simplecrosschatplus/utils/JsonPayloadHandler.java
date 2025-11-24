@@ -10,6 +10,34 @@ public final class JsonPayloadHandler {
     private JsonPayloadHandler() {
     }
 
+    /**
+     * Encrypts an entire JSON payload string
+     */
+    public static String encryptPayload(String jsonPayload, String encryptionKey) {
+        String encrypted = ConversationUtils.encrypt(jsonPayload, encryptionKey);
+
+        if (encrypted == null) {
+            System.err.println("[SimpleCrossChat] Failed to encrypt payload!");
+            return null;
+        }
+
+        return encrypted;
+    }
+
+    /**
+     * Decrypts an entire JSON payload string
+     */
+    public static String decryptPayload(String encryptedPayload, String encryptionKey) {
+        String decrypted = ConversationUtils.decrypt(encryptedPayload, encryptionKey);
+
+        if (decrypted == null) {
+            System.err.println("[SimpleCrossChat] Failed to decrypt payload!");
+            return null;
+        }
+
+        return decrypted;
+    }
+
     public static String createJsonPayload(String senderUuid, String message, String playerName, String serverName) {
         JSONObject jsonPayload = new JSONObject();
         jsonPayload.put("senderuuid", senderUuid);

@@ -128,24 +128,28 @@ public class MQTTClientManager {
         }
 
         try {
-            String encryptedUserMessage = ConversationUtils.encrypt(messageContent, configManager.get("communication.channel.key"));
-            String encryptedUsername = ConversationUtils.encrypt(username, configManager.get("communication.channel.key"));
+            String encryptionKey = configManager.get("communication.channel.key");
 
-            String encryptedServername = ConversationUtils.encrypt(servername, configManager.get("communication.channel.key"));
+            // Create the JSON payload with plaintext data
+            String jsonPayload = JsonPayloadHandler.createJsonPayload(this.userUuid, messageContent, username, servername);
 
-            if (isContentReadyToSend(encryptedUserMessage, encryptedUsername, encryptedServername)) {
-                String jsonMessagePayload = JsonPayloadHandler.createJsonPayload(this.userUuid, encryptedUserMessage, encryptedUsername, encryptedServername);
-                MqttMessage message = new MqttMessage(jsonMessagePayload.getBytes());
+            // Encrypt the ENTIRE JSON payload
+            String encryptedPayload = JsonPayloadHandler.encryptPayload(jsonPayload, encryptionKey);
 
-                message.setQos(1);
-                String convTopic = configManager.get("communication.channel.id");
+            if (encryptedPayload == null || encryptedPayload.isEmpty()) {
+                pluginInstance.getLogger().severe(Prefix + "Encryption failed! Message not sent. Check your encryption key configuration.");
+                return;
+            }
 
-                IMqttToken token = client.publish(convTopic, message);
-                token.waitForCompletion();
+            MqttMessage message = new MqttMessage(encryptedPayload.getBytes());
+            message.setQos(1);
 
-                if (configManager.get("debug.showmessages")) {
-                    pluginInstance.getLogger().info(Prefix + "The player (user on your server) " + username + " sent a message");
-                }
+            String convTopic = configManager.get("communication.channel.id");
+            IMqttToken token = client.publish(convTopic, message);
+            token.waitForCompletion();
+
+            if (configManager.get("debug.showmessages")) {
+                pluginInstance.getLogger().info(Prefix + "The player (user on your server) " + username + " sent an encrypted message");
             }
         } catch (MqttException e) {
             pluginInstance.getLogger().severe(Prefix + "Error while sending message: " + e.getMessage());
@@ -159,9 +163,6 @@ public class MQTTClientManager {
         }
     }
 
-    private static boolean isContentReadyToSend(String encryptedUserMessage, String encryptedUsername, String encryptedServername) {
-        return encryptedUserMessage != null && !encryptedUserMessage.isEmpty() && encryptedUsername != null && !encryptedUsername.isEmpty() && encryptedServername != null && !encryptedServername.isEmpty();
-    }
 
     private void subscribeToTopic(String topic) {
         if (topic != null && !topic.isEmpty()) {
@@ -184,7 +185,21 @@ public class MQTTClientManager {
     }
 
     private void processReceivedMessage(MqttMessage message) {
-        JsonPayload receivedMessage = JsonPayloadHandler.readJsonPayload(new String(message.getPayload()));
+        // First, decrypt the ENTIRE payload
+        String encryptedPayload = new String(message.getPayload());
+        String encryptionKey = configManager.get("communication.channel.key");
+
+        String decryptedPayload = JsonPayloadHandler.decryptPayload(encryptedPayload, encryptionKey);
+
+        if (decryptedPayload == null) {
+            if (configManager.get("debug.showmessages")) {
+                pluginInstance.getLogger().warning(Prefix + "Failed to decrypt received message. Wrong encryption key?");
+            }
+            return;
+        }
+
+        // Now parse the decrypted JSON
+        JsonPayload receivedMessage = JsonPayloadHandler.readJsonPayload(decryptedPayload);
 
         if (receivedMessage != null) {
             if (receivedMessage.getSenderUuid().equals(this.userUuid)) {
@@ -194,36 +209,39 @@ public class MQTTClientManager {
                 return;
             }
 
+            // Pass the decrypted payload bytes to handlers
+            byte[] decryptedBytes = decryptedPayload.getBytes();
+
             switch (receivedMessage.getPayloadType()) {
                 case CHAT:
                     handleChatPayload(receivedMessage);
                     break;
                 case ENTITY_TRANSFER:
-                    handleEntityTransferPayload(message.getPayload());
+                    handleEntityTransferPayload(decryptedBytes);
                     break;
                 case ITEM_TRANSFER:
-                    handleItemTransferPayload(message.getPayload());
+                    handleItemTransferPayload(decryptedBytes);
                     break;
                 case MONEY_TRANSFER:
-                    handleMoneyTransferPayload(message.getPayload());
+                    handleMoneyTransferPayload(decryptedBytes);
                     break;
                 case PRIVATE_MESSAGE:
-                    handlePrivateMessagePayload(message.getPayload());
+                    handlePrivateMessagePayload(decryptedBytes);
                     break;
                 case SERVER_INFO_REQUEST:
-                    handleServerInfoRequest(message.getPayload());
+                    handleServerInfoRequest(decryptedBytes);
                     break;
                 case SERVER_INFO_RESPONSE:
-                    handleServerInfoResponse(message.getPayload());
+                    handleServerInfoResponse(decryptedBytes);
                     break;
                 case SERVER_HEARTBEAT:
-                    handleServerHeartbeat(message.getPayload());
+                    handleServerHeartbeat(decryptedBytes);
                     break;
                 case PLAYER_LOCATION_REQUEST:
-                    handlePlayerLocationRequest(message.getPayload());
+                    handlePlayerLocationRequest(decryptedBytes);
                     break;
                 case PLAYER_LOCATION_RESPONSE:
-                    handlePlayerLocationResponse(message.getPayload());
+                    handlePlayerLocationResponse(decryptedBytes);
                     break;
                 default:
                     if (configManager.get("debug.showmessages")) {
@@ -235,23 +253,18 @@ public class MQTTClientManager {
 
     private void handleChatPayload(JsonPayload receivedMessage) {
         if (configManager.get("debug.showmessages")) {
-            pluginInstance.getLogger().info(Prefix + "A Message was received, trying to decrypt it's content");
+            pluginInstance.getLogger().info(Prefix + "A chat message was received (already decrypted)");
         }
 
-        String convKey = configManager.get("communication.channel.key");
-        String receivedEncryptedMessage = receivedMessage.getEncryptedMessage();
-        String decryptedMessage = ConversationUtils.decrypt(receivedEncryptedMessage, convKey);
+        // The payload is already fully decrypted, just extract the data
+        String message = receivedMessage.getEncryptedMessage();
+        String playerName = receivedMessage.getEncryptedPlayerDisplayname();
+        String serverName = receivedMessage.getEncryptedServerName();
 
-        String receivedEncryptedPlayername = receivedMessage.getEncryptedPlayerDisplayname();
-        String decryptedPlayername = ConversationUtils.decrypt(receivedEncryptedPlayername, convKey);
-
-        String receivedEncryptedServerName = receivedMessage.getEncryptedServerName();
-        String decryptedServerName = ConversationUtils.decrypt(receivedEncryptedServerName, convKey);
-
-        if (receivedEncryptedPlayername != null && !receivedEncryptedPlayername.isEmpty()) {
-            broadcastDecryptedMessage(decryptedMessage, decryptedPlayername, decryptedServerName);
+        if (message != null && !message.isEmpty() && playerName != null && !playerName.isEmpty()) {
+            broadcastDecryptedMessage(message, playerName, serverName);
         } else {
-            pluginInstance.getLogger().warning(Prefix + "The keys are not the same, message is not decryptable!");
+            pluginInstance.getLogger().warning(Prefix + "Received malformed chat message!");
         }
     }
 
@@ -266,17 +279,13 @@ public class MQTTClientManager {
             return;
         }
 
-        String convKey = configManager.get("communication.channel.key");
-
+        // Data is already decrypted, just extract it
         String transferUid = json.optString("transferuid", "");
-        String encryptedEntityData = json.optString("entitydata", "");
-        String encryptedEntityType = json.optString("entitytype", "");
+        String entityData = json.optString("entitydata", "");
+        String entityType = json.optString("entitytype", "");
         String playerName = json.optString("playername", "");
         String sourceServer = json.optString("servername", "");
 
-        // Decrypt the data before storing
-        String entityData = ConversationUtils.decrypt(encryptedEntityData, convKey);
-        String entityType = ConversationUtils.decrypt(encryptedEntityType, convKey);
 
         pluginInstance.getAssetTransferManager().storePendingTransfer(
             transferUid,
@@ -308,17 +317,13 @@ public class MQTTClientManager {
             return;
         }
 
-        String convKey = configManager.get("communication.channel.key");
-
+        // Data is already decrypted, just extract it
         String transferUid = json.optString("transferuid", "");
-        String encryptedItemData = json.optString("itemdata", "");
-        String encryptedItemType = json.optString("itemtype", "");
+        String itemData = json.optString("itemdata", "");
+        String itemType = json.optString("itemtype", "");
         String playerName = json.optString("playername", "");
         String sourceServer = json.optString("servername", "");
 
-        // Decrypt the data before storing
-        String itemData = ConversationUtils.decrypt(encryptedItemData, convKey);
-        String itemType = ConversationUtils.decrypt(encryptedItemType, convKey);
 
         pluginInstance.getAssetTransferManager().storePendingTransfer(
             transferUid,
@@ -343,10 +348,10 @@ public class MQTTClientManager {
         org.json.JSONObject json = JsonPayloadHandler.parseJson(new String(payload));
         if (json == null) return;
 
-        String convKey = configManager.get("communication.channel.key");
-        String targetPlayer = ConversationUtils.decrypt(json.optString("targetplayer", ""), convKey);
-        String senderPlayer = ConversationUtils.decrypt(json.optString("senderplayer", ""), convKey);
-        String amount = ConversationUtils.decrypt(json.optString("amount", "0"), convKey);
+        // Data is already decrypted, just extract it
+        String targetPlayer = json.optString("targetplayer", "");
+        String senderPlayer = json.optString("senderplayer", "");
+        String amount = json.optString("amount", "0");
         String transferUid = json.optString("transferuid", "");
         String sourceServer = json.optString("servername", "");
 
@@ -388,10 +393,10 @@ public class MQTTClientManager {
         org.json.JSONObject json = JsonPayloadHandler.parseJson(new String(payload));
         if (json == null) return;
 
-        String convKey = configManager.get("communication.channel.key");
-        String targetPlayer = ConversationUtils.decrypt(json.optString("targetplayer", ""), convKey);
-        String senderName = ConversationUtils.decrypt(json.optString("sendername", ""), convKey);
-        String message = ConversationUtils.decrypt(json.optString("message", ""), convKey);
+        // Data is already decrypted, just extract it
+        String targetPlayer = json.optString("targetplayer", "");
+        String senderName = json.optString("sendername", "");
+        String message = json.optString("message", "");
 
         new org.bukkit.scheduler.BukkitRunnable() {
             @Override
@@ -422,7 +427,6 @@ public class MQTTClientManager {
         }
 
         String requestId = json.optString("requestid", "");
-        String convKey = configManager.get("communication.channel.key");
 
         new org.bukkit.scheduler.BukkitRunnable() {
             @Override
@@ -434,13 +438,9 @@ public class MQTTClientManager {
                 String version = pluginInstance.getServer().getVersion();
                 String contact = configManager.get("general.serverip", "");
 
-                String encryptedPlayerCount = ConversationUtils.encrypt(String.valueOf(playerCount), convKey);
-                String encryptedMaxPlayers = ConversationUtils.encrypt(String.valueOf(maxPlayers), convKey);
-                String encryptedMotd = ConversationUtils.encrypt(motd, convKey);
-                String encryptedVersion = ConversationUtils.encrypt(version, convKey);
-
-                sendServerInfoResponse(requestId, encryptedPlayerCount, encryptedMaxPlayers,
-                                       encryptedMotd, encryptedVersion, contact);
+                // Pass plaintext data - sendServerInfoResponse will encrypt the entire payload
+                sendServerInfoResponse(requestId, String.valueOf(playerCount), String.valueOf(maxPlayers),
+                                       motd, version, contact);
             }
         }.runTask(pluginInstance);
     }
@@ -457,14 +457,14 @@ public class MQTTClientManager {
             return;
         }
 
-        String convKey = configManager.get("communication.channel.key");
-        String playerCount = ConversationUtils.decrypt(json.optString("playercount", ""), convKey);
+        // Data is already decrypted, just extract it
+        String playerCount = json.optString("playercount", "");
         String contact = json.optString("contact", "");
 
         // Extended info fields
-        String maxPlayers = ConversationUtils.decrypt(json.optString("maxplayers", ""), convKey);
-        String motd = ConversationUtils.decrypt(json.optString("motd", ""), convKey);
-        String version = ConversationUtils.decrypt(json.optString("version", ""), convKey);
+        String maxPlayers = json.optString("maxplayers", "");
+        String motd = json.optString("motd", "");
+        String version = json.optString("version", "");
 
         new org.bukkit.scheduler.BukkitRunnable() {
             @Override
@@ -531,15 +531,21 @@ public class MQTTClientManager {
     public void sendEntityTransfer(String uid, String entityData, String entityType, String playerName, String targetServer) {
         try {
             String convKey = configManager.get("communication.channel.key");
-            String encryptedEntityData = ConversationUtils.encrypt(entityData, convKey);
-            String encryptedEntityType = ConversationUtils.encrypt(entityType, convKey);
 
+            // Create JSON with plaintext data
             String jsonPayload = JsonPayloadHandler.createEntityTransferPayload(
-                this.userUuid, uid, encryptedEntityData, encryptedEntityType, playerName,
+                this.userUuid, uid, entityData, entityType, playerName,
                 configManager.get("general.servername"), targetServer
             );
 
-            MqttMessage message = new MqttMessage(jsonPayload.getBytes());
+            // Encrypt the ENTIRE payload
+            String encryptedPayload = JsonPayloadHandler.encryptPayload(jsonPayload, convKey);
+            if (encryptedPayload == null) {
+                pluginInstance.getLogger().severe(Prefix + "Failed to encrypt entity transfer payload");
+                return;
+            }
+
+            MqttMessage message = new MqttMessage(encryptedPayload.getBytes());
             message.setQos(1);
 
             String convTopic = configManager.get("communication.channel.id");
@@ -554,15 +560,21 @@ public class MQTTClientManager {
     public void sendItemTransfer(String uid, String itemData, String itemType, String playerName, String targetServer) {
         try {
             String convKey = configManager.get("communication.channel.key");
-            String encryptedItemData = ConversationUtils.encrypt(itemData, convKey);
-            String encryptedItemType = ConversationUtils.encrypt(itemType, convKey);
 
+            // Create JSON with plaintext data
             String jsonPayload = JsonPayloadHandler.createItemTransferPayload(
-                this.userUuid, uid, encryptedItemData, encryptedItemType, playerName,
+                this.userUuid, uid, itemData, itemType, playerName,
                 configManager.get("general.servername"), targetServer
             );
 
-            MqttMessage message = new MqttMessage(jsonPayload.getBytes());
+            // Encrypt the ENTIRE payload
+            String encryptedPayload = JsonPayloadHandler.encryptPayload(jsonPayload, convKey);
+            if (encryptedPayload == null) {
+                pluginInstance.getLogger().severe(Prefix + "Failed to encrypt item transfer payload");
+                return;
+            }
+
+            MqttMessage message = new MqttMessage(encryptedPayload.getBytes());
             message.setQos(1);
 
             String convTopic = configManager.get("communication.channel.id");
@@ -577,16 +589,21 @@ public class MQTTClientManager {
     public void sendMoneyTransfer(String uid, double amount, String targetPlayer, String senderPlayer) {
         try {
             String convKey = configManager.get("communication.channel.key");
-            String encryptedAmount = ConversationUtils.encrypt(String.valueOf(amount), convKey);
-            String encryptedTargetPlayer = ConversationUtils.encrypt(targetPlayer, convKey);
-            String encryptedSenderPlayer = ConversationUtils.encrypt(senderPlayer, convKey);
 
+            // Create JSON with plaintext data
             String jsonPayload = JsonPayloadHandler.createMoneyTransferPayload(
-                this.userUuid, uid, encryptedAmount, encryptedTargetPlayer, encryptedSenderPlayer,
+                this.userUuid, uid, String.valueOf(amount), targetPlayer, senderPlayer,
                 configManager.get("general.servername")
             );
 
-            MqttMessage message = new MqttMessage(jsonPayload.getBytes());
+            // Encrypt the ENTIRE payload
+            String encryptedPayload = JsonPayloadHandler.encryptPayload(jsonPayload, convKey);
+            if (encryptedPayload == null) {
+                pluginInstance.getLogger().severe(Prefix + "Failed to encrypt money transfer payload");
+                return;
+            }
+
+            MqttMessage message = new MqttMessage(encryptedPayload.getBytes());
             message.setQos(1);
 
             String convTopic = configManager.get("communication.channel.id");
@@ -608,16 +625,21 @@ public class MQTTClientManager {
 
         try {
             String convKey = configManager.get("communication.channel.key");
-            String encryptedTargetPlayer = ConversationUtils.encrypt(targetPlayer, convKey);
-            String encryptedMessage = ConversationUtils.encrypt(message, convKey);
-            String encryptedSenderName = ConversationUtils.encrypt(senderName, convKey);
 
+            // Create JSON with plaintext data
             String jsonPayload = JsonPayloadHandler.createPrivateMessagePayload(
-                this.userUuid, encryptedMessage, encryptedTargetPlayer, encryptedSenderName,
+                this.userUuid, message, targetPlayer, senderName,
                 configManager.get("general.servername")
             );
 
-            MqttMessage mqttMessage = new MqttMessage(jsonPayload.getBytes());
+            // Encrypt the ENTIRE payload
+            String encryptedPayload = JsonPayloadHandler.encryptPayload(jsonPayload, convKey);
+            if (encryptedPayload == null) {
+                pluginInstance.getLogger().severe(Prefix + "Failed to encrypt private message payload");
+                return;
+            }
+
+            MqttMessage mqttMessage = new MqttMessage(encryptedPayload.getBytes());
             mqttMessage.setQos(1);
 
             String convTopic = configManager.get("communication.channel.id");
@@ -651,14 +673,19 @@ public class MQTTClientManager {
             String requestId = java.util.UUID.randomUUID().toString().substring(0, 8);
             String convKey = configManager.get("communication.channel.key");
 
-            String encryptedRequesterName = ConversationUtils.encrypt(sender.getName(), convKey);
-            String encryptedServerName = ConversationUtils.encrypt(configManager.get("general.servername"), convKey);
-
+            // Create JSON with plaintext data
             String jsonPayload = JsonPayloadHandler.createServerInfoRequestPayload(
-                this.userUuid, requestId, targetServer, encryptedRequesterName, encryptedServerName
+                this.userUuid, requestId, targetServer, sender.getName(), configManager.get("general.servername")
             );
 
-            MqttMessage message = new MqttMessage(jsonPayload.getBytes());
+            // Encrypt the ENTIRE payload
+            String encryptedPayload = JsonPayloadHandler.encryptPayload(jsonPayload, convKey);
+            if (encryptedPayload == null) {
+                pluginInstance.getLogger().severe(Prefix + "Failed to encrypt server info request payload");
+                return;
+            }
+
+            MqttMessage message = new MqttMessage(encryptedPayload.getBytes());
             message.setQos(1);
 
             String convTopic = configManager.get("communication.channel.id");
@@ -686,12 +713,22 @@ public class MQTTClientManager {
     private void sendServerInfoResponse(String requestId, String playerCount, String maxPlayers,
                                          String motd, String version, String contact) {
         try {
+            String convKey = configManager.get("communication.channel.key");
+
+            // Create JSON with plaintext data
             String jsonPayload = JsonPayloadHandler.createServerInfoResponsePayload(
                 this.userUuid, requestId, playerCount, maxPlayers, motd, version,
                 configManager.get("general.servername"), contact
             );
 
-            MqttMessage message = new MqttMessage(jsonPayload.getBytes());
+            // Encrypt the ENTIRE payload
+            String encryptedPayload = JsonPayloadHandler.encryptPayload(jsonPayload, convKey);
+            if (encryptedPayload == null) {
+                pluginInstance.getLogger().severe(Prefix + "Failed to encrypt server info response payload");
+                return;
+            }
+
+            MqttMessage message = new MqttMessage(encryptedPayload.getBytes());
             message.setQos(1);
 
             String convTopic = configManager.get("communication.channel.id");
@@ -705,6 +742,9 @@ public class MQTTClientManager {
 
     public void sendHeartbeat() {
         try {
+            String convKey = configManager.get("communication.channel.key");
+
+            // Create JSON payload with plaintext data
             org.json.JSONObject jsonPayload = new org.json.JSONObject();
             jsonPayload.put("senderuuid", this.userUuid);
             jsonPayload.put("payloadtype", "SERVER_HEARTBEAT");
@@ -716,7 +756,14 @@ public class MQTTClientManager {
             String contact = configManager.get("general.serverip", "");
             jsonPayload.put("contact", contact);
 
-            MqttMessage message = new MqttMessage(jsonPayload.toString().getBytes());
+            // Encrypt the ENTIRE payload
+            String encryptedPayload = JsonPayloadHandler.encryptPayload(jsonPayload.toString(), convKey);
+            if (encryptedPayload == null) {
+                // Silently fail for heartbeats
+                return;
+            }
+
+            MqttMessage message = new MqttMessage(encryptedPayload.getBytes());
             message.setQos(0); // QoS 0 for heartbeats (fire and forget)
 
             String convTopic = (String) configManager.get("communication.channel.id");
@@ -730,12 +777,21 @@ public class MQTTClientManager {
     public void requestPlayerLocation(String playerName, org.bukkit.command.CommandSender sender) {
         try {
             String requestId = java.util.UUID.randomUUID().toString().substring(0, 8);
+            String convKey = configManager.get("communication.channel.key");
 
+            // Create JSON with plaintext data
             String jsonPayload = JsonPayloadHandler.createPlayerLocationRequestPayload(
                 this.userUuid, requestId, playerName, sender.getName()
             );
 
-            MqttMessage message = new MqttMessage(jsonPayload.getBytes());
+            // Encrypt the ENTIRE payload
+            String encryptedPayload = JsonPayloadHandler.encryptPayload(jsonPayload, convKey);
+            if (encryptedPayload == null) {
+                pluginInstance.getLogger().severe(Prefix + "Failed to encrypt player location request payload");
+                return;
+            }
+
+            MqttMessage message = new MqttMessage(encryptedPayload.getBytes());
             message.setQos(1);
 
             String convTopic = configManager.get("communication.channel.id");
@@ -771,13 +827,23 @@ public class MQTTClientManager {
         // Check if locate remote resolution is enabled
         boolean allowRemoteResolution = configManager.get("locate.allow-remote-resolution", true);
         if (!allowRemoteResolution) {
+            String convKey = configManager.get("communication.channel.key");
             String serverName = configManager.get("general.servername");
+
+            // Create JSON with plaintext data
             String jsonPayload = JsonPayloadHandler.createPlayerLocationResponsePayload(
                 this.userUuid, requestId, targetPlayerName, serverName, "", false, true
             );
 
+            // Encrypt the ENTIRE payload
+            String encryptedPayload = JsonPayloadHandler.encryptPayload(jsonPayload, convKey);
+            if (encryptedPayload == null) {
+                pluginInstance.getLogger().severe(Prefix + "Failed to encrypt player location response payload");
+                return;
+            }
+
             try {
-                MqttMessage message = new MqttMessage(jsonPayload.getBytes());
+                MqttMessage message = new MqttMessage(encryptedPayload.getBytes());
                 message.setQos(1);
 
                 String convTopic = configManager.get("communication.channel.id");
@@ -793,6 +859,7 @@ public class MQTTClientManager {
         // Check if player is on this server
         org.bukkit.entity.Player player = pluginInstance.getServer().getPlayer(targetPlayerName);
         if (player != null && player.isOnline()) {
+            String convKey = configManager.get("communication.channel.key");
             String serverName = configManager.get("general.servername");
             String contact = configManager.get("general.serverip", "");
 
@@ -804,12 +871,20 @@ public class MQTTClientManager {
                 player.sendMessage(Messages.get("locate.privacy_notice", noticePlaceholders));
             }
 
+            // Create JSON with plaintext data
             String jsonPayload = JsonPayloadHandler.createPlayerLocationResponsePayload(
                 this.userUuid, requestId, targetPlayerName, serverName, contact != null ? contact : "", true, false
             );
 
+            // Encrypt the ENTIRE payload
+            String encryptedPayload = JsonPayloadHandler.encryptPayload(jsonPayload, convKey);
+            if (encryptedPayload == null) {
+                pluginInstance.getLogger().severe(Prefix + "Failed to encrypt player location response payload");
+                return;
+            }
+
             try {
-                MqttMessage message = new MqttMessage(jsonPayload.getBytes());
+                MqttMessage message = new MqttMessage(encryptedPayload.getBytes());
                 message.setQos(1);
 
                 String convTopic = configManager.get("communication.channel.id");
