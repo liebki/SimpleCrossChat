@@ -76,7 +76,7 @@ public final class SimpleCrossChat extends JavaPlugin {
 
         configManager.set("general.info", "- INFO: Please be advised to take a look at the brokers technical informations");
         configManager.set("general.privacyinfo", "- INFO: Even tho the messages are not readable for outstanders, I would host my own broker for a safe communication!");
-        configManager.set("technical.broker.address", "test.mosquitto.org");
+        configManager.set("technical.broker.address", "broker.emqx.io");
         configManager.set("technical.broker.protocol", "tcp");
         configManager.set("technical.broker.port", 1883);
 

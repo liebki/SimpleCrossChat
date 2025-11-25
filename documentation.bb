@@ -17,7 +17,7 @@ general:
   privacyinfo: '- INFO: Even tho the messages are not readable for outstanders, I would host my own broker for a safe communication!'
 technical:
   broker:
-    address: test.mosquitto.org
+    address: broker.emqx.io
     protocol: tcp
     port: 1883
 communication:

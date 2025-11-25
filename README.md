@@ -46,13 +46,13 @@ Requires **Java 21** for Minecraft 1.21 and above.
 
 - **Feature deactivation**: Global chat and other features can be deactivated in the configuration to reduce message transmission.
 
-- **Third-party risks**: Using public brokers (e.g., test.mosquitto.org) means messages could theoretically be intercepted. Host your own broker for privacy.
+- **Third-party risks**: Using public brokers (e.g., broker.emqx.io) means messages could theoretically be intercepted. Host your own broker for privacy.
 
 - **Message scope**: Only global chat and cross-server messages are sent. Other plugin messages are not transmitted unless using the relevant commands.
 
 ## Setup
 
-1. **Install an MQTT Broker** (default: test.mosquitto.org, but private broker recommended).
+1. **Install an MQTT Broker** (default: broker.emqx.io, but private broker recommended).
 2. **Install the plugin**: Place the JAR in your server's `plugins` folder.
 3. **Configure options** (optional): Update `options.yml` for broker address, server name, and message format.
 4. **Install Vault** (optional): For money transfer and advanced permissions.
