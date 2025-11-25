@@ -72,3 +72,7 @@ permissions:
   sccplus.toggle.notify:
     description: Toggle notification preferences
     default: true
+
+libraries:
+  - org.json:json:20240303
+  - org.apache.camel:camel-paho-mqtt5:4.8.1
