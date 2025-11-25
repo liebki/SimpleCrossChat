@@ -53,8 +53,7 @@ public class ItemSerializer {
             return item;
 
         } catch (Exception e) {
-            System.err.println("[ItemSerializer] Failed to deserialize ItemStack:");
-            e.printStackTrace();
+            System.err.println("[SimpleCrossChatPlus] Item could not be restored due to version incompatibility or corruption.");
             return null;
         }
     }

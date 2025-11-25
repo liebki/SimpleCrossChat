@@ -116,8 +116,7 @@ public class EntitySerializer {
             return snapshot;
 
         } catch (Exception e) {
-            System.err.println("[EntitySerializer] Failed to deserialize entity snapshot:");
-            e.printStackTrace();
+            System.err.println("[SimpleCrossChatPlus] Entity could not be restored due to version incompatibility or corruption.");
             return null;
         }
     }
@@ -240,4 +239,3 @@ public class EntitySerializer {
         return false;
     }
 }
-

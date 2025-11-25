@@ -90,6 +90,14 @@ Requires **Java 21** for Minecraft 1.21 and above.
 - **Encryption**: Messages are encrypted (`AES/CBC/PKCS5Padding`), but public brokers are not foolproof.
 - **Inform players** about message transmission and privacy risks.
 
+## Version Compatibility
+
+- **Old to New:** Transferring entities and items from older Minecraft versions to newer ones works most often without issues. Newer versions can read and upgrade legacy data formats.
+
+- **New to Old:** Transferring from newer to older versions is unreliable. Items usually fail due to NBT/data differences, while some entities may work if their type and properties exist in both versions.
+
+- **Same Version:** Transfers between servers running the same Minecraft version work as expected.
+
 ## Usage
 
 1. Install the plugin in your server's `plugins` folder.

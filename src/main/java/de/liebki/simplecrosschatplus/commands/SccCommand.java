@@ -92,6 +92,7 @@ public class SccCommand implements CommandExecutor, TabCompleter {
         if (sender.hasPermission("sccplus.admin.disable")) {
             sender.sendMessage(MessageUtils.ColorConvert("&e/scc disable <player> &7- Disable player"));
         }
+        sender.sendMessage(MessageUtils.ColorConvert("&c&lWARNING: Entity/item loss is irreversible. Once lost, it cannot be recovered."));
     }
 
     @Override
