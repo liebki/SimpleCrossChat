@@ -59,6 +59,9 @@ public final class SimpleCrossChat extends JavaPlugin {
 
         // After configManager is ready:
         Messages.init(configManager);
+
+        this.getLogger().warning("By using SimpleCrossChatPlus, you agree that your server name and other details may be publicly accessible and that the developer is not liable for any misuse or data breaches.");
+        this.getLogger().warning("As mentioned, consider hosting your own MQTT broker for enhanced security and privacy, it is not resource intensive but greatly increases safety!");
     }
 
     private void createConfigDefaults() {

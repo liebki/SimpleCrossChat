@@ -50,12 +50,9 @@ Use permissions to control who can transfer entities, items, or money. Example:
 MQTT Broker Setup
 - Public Broker: Quick setup, but less privacy. Use for testing.
 - Private Broker: Recommended for production. Host your own for full control and security. Supports SSL for encrypted connections.
-- SSL Setup: Configure your broker and plugin for SSL to encrypt all traffic.
-
-Advanced Configuration
-- Customize message formats for branding.
-- Enable debug mode for troubleshooting.
-- Use channel keys for private communication.
+- Old to New: Transfers from older Minecraft versions to newer ones work most often without problems. Newer versions can read and upgrade legacy data formats for entities and items.
+- New to Old: Transfers from newer to older versions are unreliable. Items usually fail due to NBT/data differences, while some entities may work if their type and properties exist in both versions.
+- Same Version: Transfers between servers running the same Minecraft version work as expected.
 - Toggle features per server or per player.
 
 Troubleshooting

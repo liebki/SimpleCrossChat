@@ -5,11 +5,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>de.liebki</groupId>
-    <artifactId>simplecrosschat</artifactId>
+    <artifactId>simplecrosschatplus</artifactId>
     <version>0.2</version>
     <packaging>jar</packaging>
 
-    <name>simplecrosschat</name>
+    <name>simplecrosschatplus</name>
 
     <properties>
         <java.version>16</java.version>
@@ -39,6 +39,61 @@
                         <goals>
                             <goal>shade</goal>
                         </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <filters>
+                        <filter>
+                            <artifact>*:*</artifact>
+                            <excludes>
+                                <exclude>module-info.class</exclude>
+                                <exclude>META-INF/*.SF</exclude>
+                                <exclude>META-INF/*.DSA</exclude>
+                                <exclude>META-INF/*.RSA</exclude>
+                                <exclude>META-INF/MANIFEST.MF</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
+                    <createDependencyReducedPom>false</createDependencyReducedPom>
+                    <transformers>
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                            <mainClass>de.liebki.simplecrosschatplus.SimpleCrossChat</mainClass>
+                        </transformer>
+                    </transformers>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.8</version>
+                <executions>
+                    <execution>
+                        <id>obfuscate-with-yguard</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <tasks>
+                                <property name="project.jar" value="${project.build.directory}/${project.build.finalName}.jar"/>
+                                <property name="project.jar.unobf" value="${project.build.directory}/${project.build.finalName}_unobf.jar"/>
+                                <move file="${project.jar}" tofile="${project.jar.unobf}" verbose="true"/>
+
+                                <property name="runtime_classpath" refid="maven.runtime.classpath"/>
+                                <taskdef name="yguard" classname="com.yworks.yguard.YGuardTask" classpath="${runtime_classpath}"/>
+                                <yguard>
+                                    <inoutpair in="${project.jar.unobf}" out="${project.jar}"/>
+                                    <!-- Keep some attributes like Deprecated to avoid stripping -->
+                                    <attribute name="Deprecated"/>
+
+                                    <rename logfile="${project.build.directory}/${project.build.finalName}_renamelog.xml">
+                                        <keep>
+                                            <!-- Keep the plugin main class (and its public API) -->
+                                            <class name="de.liebki.simplecrosschatplus.SimpleCrossChat" classes="public" methods="public" fields="public"/>
+                                        </keep>
+                                    </rename>
+                                </yguard>
+                            </tasks>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -74,6 +129,13 @@
     </repositories>
 
     <dependencies>
+        <dependency>
+            <groupId>com.yworks</groupId>
+            <artifactId>yguard</artifactId>
+            <version>4.1.1</version>
+            <scope>compile</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
